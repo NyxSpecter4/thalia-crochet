@@ -1,17 +1,46 @@
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { generateHyperbolicNodes, generatePattern, verifyCurvatureLogic } from '../lib/geometry'
 import { useTheme } from '../context/ThemeContext'
 import CouncilSidebar from './CouncilSidebar'
 
 const PatternViewer: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [curvature, setCurvature] = useState<number>(-0.5)
   const [nodes, setNodes] = useState(generateHyperbolicNodes(-0.5, 24))
   const [verificationResults, setVerificationResults] = useState<{ [key: string]: boolean } | null>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<number | null>(null)
   const [isCouncilOpen, setIsCouncilOpen] = useState<boolean>(false)
+  const [canvasDimensions, setCanvasDimensions] = useState({ width: 800, height: 600 })
   
   const { theme, cycleEra } = useTheme()
+
+  // Update canvas dimensions based on container size
+  const updateCanvasDimensions = useCallback(() => {
+    if (!containerRef.current) return
+    
+    const containerWidth = containerRef.current.clientWidth
+    // Calculate responsive dimensions
+    const width = Math.min(containerWidth - 32, 800) // Subtract padding
+    const height = Math.min(width * 0.75, 600) // Maintain 4:3 aspect ratio
+    
+    setCanvasDimensions({ width, height })
+  }, [])
+
+  // Handle window resize
+  useEffect(() => {
+    updateCanvasDimensions()
+    window.addEventListener('resize', updateCanvasDimensions)
+    return () => window.removeEventListener('resize', updateCanvasDimensions)
+  }, [updateCanvasDimensions])
+
+  // Initial dimensions on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateCanvasDimensions()
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [updateCanvasDimensions])
 
   useEffect(() => {
     const newNodes = generateHyperbolicNodes(curvature, 24)
@@ -29,6 +58,10 @@ const PatternViewer: React.FC = () => {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     
+    // Set canvas dimensions to match state
+    canvas.width = canvasDimensions.width
+    canvas.height = canvasDimensions.height
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     
     // Draw grid
@@ -37,18 +70,24 @@ const PatternViewer: React.FC = () => {
     
     ctx.strokeStyle = theme.colors.border
     ctx.lineWidth = 1
-    for (let x = 0; x <= canvas.width; x += 40) {
+    const gridSize = Math.max(20, Math.min(40, canvas.width / 20)) // Responsive grid spacing
+    for (let x = 0; x <= canvas.width; x += gridSize) {
       ctx.beginPath()
       ctx.moveTo(x, 0)
       ctx.lineTo(x, canvas.height)
       ctx.stroke()
     }
-    for (let y = 0; y <= canvas.height; y += 40) {
+    for (let y = 0; y <= canvas.height; y += gridSize) {
       ctx.beginPath()
       ctx.moveTo(0, y)
       ctx.lineTo(canvas.width, y)
       ctx.stroke()
     }
+    
+    // Scale node positions to fit new canvas dimensions
+    const scaleX = canvas.width / 800
+    const scaleY = canvas.height / 600
+    const scale = Math.min(scaleX, scaleY)
     
     // Draw connections
     ctx.strokeStyle = theme.colors.primary + '80'
@@ -57,41 +96,49 @@ const PatternViewer: React.FC = () => {
       const node1 = nodes[i]
       const node2 = nodes[(i + 1) % nodes.length]
       ctx.beginPath()
-      ctx.moveTo(node1.x, node1.y)
-      ctx.lineTo(node2.x, node2.y)
+      ctx.moveTo(node1.x * scaleX, node1.y * scaleY)
+      ctx.lineTo(node2.x * scaleX, node2.y * scaleY)
       ctx.stroke()
     }
     
     // Draw nodes
     nodes.forEach((node, index) => {
+      const scaledX = node.x * scaleX
+      const scaledY = node.y * scaleY
+      const scaledSize = node.size * scale
+      
       ctx.beginPath()
-      ctx.arc(node.x, node.y, node.size + 3, 0, Math.PI * 2)
+      ctx.arc(scaledX, scaledY, scaledSize + 3, 0, Math.PI * 2)
       ctx.fillStyle = `${theme.colors.primary}40`
       ctx.fill()
       
       ctx.beginPath()
-      ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2)
+      ctx.arc(scaledX, scaledY, scaledSize, 0, Math.PI * 2)
       ctx.fillStyle = curvature < 0 ? theme.colors.accent : theme.colors.primary
       ctx.fill()
       
       ctx.beginPath()
-      ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2)
+      ctx.arc(scaledX, scaledY, scaledSize, 0, Math.PI * 2)
       ctx.strokeStyle = theme.colors.accent
       ctx.lineWidth = 1.5
       ctx.stroke()
       
       ctx.fillStyle = theme.colors.text
-      ctx.font = '10px ' + theme.typography.monoFont
+      ctx.font = `${Math.max(8, 10 * scale)}px ${theme.typography.monoFont}`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText(index.toString(), node.x, node.y)
+      ctx.fillText(index.toString(), scaledX, scaledY)
     })
     
     // Draw selected node
     if (selectedNodeId !== null && nodes[selectedNodeId]) {
       const node = nodes[selectedNodeId]
+      const scaledX = node.x * scaleX
+      const scaledY = node.y * scaleY
+      const scaledSize = node.size * scale
+      
       ctx.beginPath()
-      ctx.arc(node.x, node.y, node.size + 10, 0, Math.PI * 2)
+      ctx.arc(scaledX, scaledY, scaledSize + 10, 0, Math.PI * 2)
       ctx.strokeStyle = theme.colors.accent
       ctx.lineWidth = 2
       ctx.setLineDash([5, 5])
@@ -99,10 +146,10 @@ const PatternViewer: React.FC = () => {
       ctx.setLineDash([])
     }
     
-    // Draw curvature indicator
-    const centerX = canvas.width - 100
-    const centerY = 100
-    const radius = 40
+    // Draw curvature indicator (responsive positioning)
+    const centerX = canvas.width - 80 * scale
+    const centerY = 80 * scale
+    const radius = 30 * scale
     ctx.beginPath()
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
     ctx.fillStyle = theme.colors.card
@@ -117,13 +164,13 @@ const PatternViewer: React.FC = () => {
     ctx.stroke()
     
     ctx.fillStyle = theme.colors.textSecondary
-    ctx.font = '12px ' + theme.typography.monoFont
+    ctx.font = `${Math.max(10, 12 * scale)}px ${theme.typography.monoFont}`
     ctx.textAlign = 'center'
-    ctx.fillText('K < 0', centerX - 30, centerY + 60)
-    ctx.fillText('Hyperbolic', centerX - 30, centerY + 75)
-    ctx.fillText('K > 0', centerX + 30, centerY + 60)
-    ctx.fillText('Spherical', centerX + 30, centerY + 75)
-  }, [nodes, curvature, selectedNodeId, theme])
+    ctx.fillText('K < 0', centerX - 25 * scale, centerY + 45 * scale)
+    ctx.fillText('Hyperbolic', centerX - 25 * scale, centerY + 60 * scale)
+    ctx.fillText('K > 0', centerX + 25 * scale, centerY + 45 * scale)
+    ctx.fillText('Spherical', centerX + 25 * scale, centerY + 60 * scale)
+  }, [nodes, curvature, selectedNodeId, theme, canvasDimensions])
 
   const handleCurvatureChange = (value: number) => {
     setCurvature(value)
@@ -155,47 +202,47 @@ const PatternViewer: React.FC = () => {
 
   return (
     <>
-      <div className="min-h-screen p-4 md:p-8" style={{ backgroundColor: theme.colors.background, color: theme.colors.text }}>
+      <div className="min-h-screen px-4 py-6 md:px-8 md:py-12" style={{ backgroundColor: theme.colors.background, color: theme.colors.text }}>
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <div className="flex justify-center items-center gap-4 mb-4">
-              <h1 className="text-4xl md:text-6xl font-serif text-glow" style={{ color: theme.colors.accent }}>
+          <div className="text-center mb-8 md:mb-12">
+            <div className="flex flex-col md:flex-row justify-center items-center gap-4 mb-4">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif text-glow" style={{ color: theme.colors.accent }}>
                 THALIA
               </h1>
               <div className="flex gap-2">
                 <button
                   onClick={cycleEra}
-                  className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
+                  className="px-4 py-3 md:py-2 rounded-lg font-medium transition-all hover:scale-105 active:scale-95 w-full md:w-auto"
                   style={{ backgroundColor: theme.colors.primary, color: theme.colors.text }}
                 >
                   {theme.name} Era
                 </button>
                 <button
                   onClick={() => setIsCouncilOpen(!isCouncilOpen)}
-                  className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
+                  className="px-4 py-3 md:py-2 rounded-lg font-medium transition-all hover:scale-105 active:scale-95 w-full md:w-auto"
                   style={{ backgroundColor: theme.colors.accent, color: theme.colors.background }}
                 >
                   {isCouncilOpen ? 'Close Council' : 'Open Council'}
                 </button>
               </div>
             </div>
-            <h2 className="text-2xl md:text-3xl font-serif mb-2" style={{ color: theme.colors.primary }}>
+            <h2 className="text-xl md:text-2xl lg:text-3xl font-serif mb-2" style={{ color: theme.colors.primary }}>
               Computational Crochet Engine
             </h2>
-            <p className="max-w-2xl mx-auto" style={{ color: theme.colors.textSecondary }}>
+            <p className="max-w-2xl mx-auto text-sm md:text-base" style={{ color: theme.colors.textSecondary }}>
               Visualizing hyperbolic (K {'<'} 0) and spherical (K {'>'} 0) stitch patterns through geometric curvature mathematics
             </p>
-            <div className="mt-4 text-sm" style={{ color: theme.colors.textSecondary }}>
+            <div className="mt-4 text-xs md:text-sm" style={{ color: theme.colors.textSecondary }}>
               <span className="px-3 py-1 rounded-full" style={{ backgroundColor: theme.colors.card }}>
                 Era: {theme.name} • Click nodes for expert insights
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-1 rounded-2xl p-6 border" style={{ backgroundColor: theme.colors.card + '80', borderColor: theme.colors.border }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            <div className="md:col-span-2 lg:col-span-1 rounded-2xl p-4 md:p-6 border" style={{ backgroundColor: theme.colors.card + '80', borderColor: theme.colors.border }}>
               <div className="mb-8">
-                <h3 className="text-xl font-semibold mb-4" style={{ color: theme.colors.accent }}>Curvature Controls</h3>
+                <h3 className="text-lg md:text-xl font-semibold mb-4" style={{ color: theme.colors.accent }}>Curvature Controls</h3>
                 
                 <div className="space-y-6">
                   <div>
@@ -212,17 +259,25 @@ const PatternViewer: React.FC = () => {
                         {curvature < 0 ? 'Hyperbolic' : curvature > 0 ? 'Spherical' : 'Euclidean'}
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min="-1"
-                      max="1"
-                      step="0.01"
-                      value={curvature}
-                      onChange={(e) => handleCurvatureChange(parseFloat(e.target.value))}
-                      className="w-full h-2 rounded-lg appearance-none cursor-pointer slider-thumb"
-                      style={{ backgroundColor: theme.colors.border, accentColor: theme.colors.primary }}
-                    />
-                    <div className="flex justify-between text-sm mt-2" style={{ color: theme.colors.textSecondary }}>
+                    <div className="relative py-2">
+                      <input
+                        type="range"
+                        min="-1"
+                        max="1"
+                        step="0.01"
+                        value={curvature}
+                        onChange={(e) => handleCurvatureChange(parseFloat(e.target.value))}
+                        className="w-full h-4 md:h-3 rounded-lg appearance-none cursor-pointer slider-thumb touch-manipulation"
+                        style={{
+                          backgroundColor: theme.colors.border,
+                          accentColor: theme.colors.primary,
+                          WebkitAppearance: 'none',
+                          MozAppearance: 'none'
+                        }}
+                      />
+                      <div className="absolute -top-1 left-0 right-0 h-8 md:h-6 pointer-events-none" /> {/* Touch target extension */}
+                    </div>
+                    <div className="flex justify-between text-xs md:text-sm mt-1 md:mt-2" style={{ color: theme.colors.textSecondary }}>
                       <span>-1.0</span>
                       <span>0.0</span>
                       <span>+1.0</span>
@@ -249,14 +304,14 @@ const PatternViewer: React.FC = () => {
 
                   {verificationResults && (
                     <div className="rounded-lg p-4 border" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
-                      <h4 className="font-medium mb-3" style={{ color: theme.colors.text }}>Logic Verification</h4>
+                      <h4 className="font-medium mb-3 text-base md:text-lg" style={{ color: theme.colors.text }}>Logic Verification</h4>
                       <div className="space-y-2">
                         {Object.entries(verificationResults).map(([test, passed]) => (
                           <div key={test} className="flex items-center justify-between">
-                            <span className="text-sm capitalize" style={{ color: theme.colors.textSecondary }}>
+                            <span className="text-xs md:text-sm capitalize" style={{ color: theme.colors.textSecondary }}>
                               {test.replace(/_/g, ' ')}:
                             </span>
-                            <span className="text-sm px-2 py-1 rounded" style={{ 
+                            <span className="text-xs md:text-sm px-2 py-1 rounded" style={{
                               backgroundColor: passed ? theme.colors.primary + '20' : '#ef444420',
                               color: passed ? theme.colors.primary : '#ef4444'
                             }}>
@@ -282,60 +337,60 @@ const PatternViewer: React.FC = () => {
               </div>
             </div>
 
-            <div className="lg:col-span-2">
-              <div className="rounded-2xl p-6 border h-full" style={{ backgroundColor: theme.colors.card + '80', borderColor: theme.colors.border }}>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-semibold" style={{ color: theme.colors.primary }}>Stitch Graph Visualization</h3>
-                  <div className="text-sm" style={{ color: theme.colors.textSecondary }}>
+            <div className="md:col-span-2 lg:col-span-2">
+              <div className="rounded-2xl p-4 md:p-6 border h-full" style={{ backgroundColor: theme.colors.card + '80', borderColor: theme.colors.border }}>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 gap-2">
+                  <h3 className="text-base md:text-xl font-semibold" style={{ color: theme.colors.primary }}>Stitch Graph Visualization</h3>
+                  <div className="text-xs md:text-sm" style={{ color: theme.colors.textSecondary }}>
                     {nodes.length} nodes • K = {curvature.toFixed(2)} • {selectedNodeId !== null ? `Node #${selectedNodeId} selected` : 'Click a node'}
                   </div>
                 </div>
 
-                <div className="relative">
+                <div className="relative" ref={containerRef}>
                   <canvas
                     ref={canvasRef}
-                    width={800}
-                    height={600}
+                    width={canvasDimensions.width}
+                    height={canvasDimensions.height}
                     onClick={handleCanvasClick}
-                    className="w-full h-auto max-h-[600px] rounded-xl border-2 cursor-pointer transition-all hover:border-opacity-100"
+                    className="w-full h-auto max-h-[500px] md:max-h-[600px] rounded-xl border-2 cursor-pointer transition-all hover:border-opacity-100"
                     style={{ borderColor: theme.colors.border, backgroundColor: theme.colors.background }}
                   />
                   
-                  <div className="absolute bottom-4 left-4 backdrop-blur-sm rounded-lg p-3 max-w-xs" style={{ 
+                  <div className="absolute bottom-2 left-2 md:bottom-4 md:left-4 backdrop-blur-sm rounded-lg p-2 md:p-3 max-w-[90%] md:max-w-xs" style={{
                     backgroundColor: theme.colors.card + 'CC',
                     border: `1px solid ${theme.colors.border}`,
                     color: theme.colors.text
                   }}>
-                    <div className="text-sm">
-                      <div className="flex items-center mb-2">
-                        <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: theme.colors.accent }}></div>
-                        <span>Hyperbolic Nodes (K {'<'} 0)</span>
+                    <div className="text-xs md:text-sm">
+                      <div className="flex items-center mb-1 md:mb-2">
+                        <div className="w-2 h-2 md:w-3 md:h-3 rounded-full mr-1 md:mr-2" style={{ backgroundColor: theme.colors.accent }}></div>
+                        <span className="text-xs md:text-sm">Hyperbolic Nodes (K {'<'} 0)</span>
                       </div>
-                      <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                      <p className="text-[10px] md:text-xs" style={{ color: theme.colors.textSecondary }}>
                         Each node represents a stitch. Negative curvature creates expanding patterns suitable for ruffles and corals.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                  <div className="rounded-lg p-4" style={{ backgroundColor: theme.colors.background }}>
-                    <div className="text-sm" style={{ color: theme.colors.textSecondary }}>Total Stitches</div>
-                    <div className="text-2xl font-semibold" style={{ color: theme.colors.primary }}>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-4 md:mt-6">
+                  <div className="rounded-lg p-3 md:p-4" style={{ backgroundColor: theme.colors.background }}>
+                    <div className="text-xs md:text-sm" style={{ color: theme.colors.textSecondary }}>Total Stitches</div>
+                    <div className="text-xl md:text-2xl font-semibold" style={{ color: theme.colors.primary }}>
                       {pattern.stitches.reduce((a, b) => a + b, 0)}
                     </div>
                   </div>
-                  <div className="rounded-lg p-4" style={{ backgroundColor: theme.colors.background }}>
-                    <div className="text-sm" style={{ color: theme.colors.textSecondary }}>Pattern Rows</div>
-                    <div className="text-2xl font-semibold" style={{ color: theme.colors.accent }}>{pattern.rows}</div>
+                  <div className="rounded-lg p-3 md:p-4" style={{ backgroundColor: theme.colors.background }}>
+                    <div className="text-xs md:text-sm" style={{ color: theme.colors.textSecondary }}>Pattern Rows</div>
+                    <div className="text-xl md:text-2xl font-semibold" style={{ color: theme.colors.accent }}>{pattern.rows}</div>
                   </div>
-                  <div className="rounded-lg p-4" style={{ backgroundColor: theme.colors.background }}>
-                    <div className="text-sm" style={{ color: theme.colors.textSecondary }}>Curvature Type</div>
-                    <div className="text-2xl font-semibold capitalize">{pattern.type}</div>
+                  <div className="rounded-lg p-3 md:p-4" style={{ backgroundColor: theme.colors.background }}>
+                    <div className="text-xs md:text-sm" style={{ color: theme.colors.textSecondary }}>Curvature Type</div>
+                    <div className="text-xl md:text-2xl font-semibold capitalize text-sm md:text-base">{pattern.type}</div>
                   </div>
-                  <div className="rounded-lg p-4" style={{ backgroundColor: theme.colors.background }}>
-                    <div className="text-sm" style={{ color: theme.colors.textSecondary }}>Density</div>
-                    <div className="text-2xl font-semibold">
+                  <div className="rounded-lg p-3 md:p-4" style={{ backgroundColor: theme.colors.background }}>
+                    <div className="text-xs md:text-sm" style={{ color: theme.colors.textSecondary }}>Density</div>
+                    <div className="text-xl md:text-2xl font-semibold">
                       {(() => {
                         const totalStitches = pattern.stitches.reduce((sum: number, count: number) => sum + count, 0)
                         const maxPossible = pattern.rows * Math.max(...pattern.stitches)
@@ -348,7 +403,7 @@ const PatternViewer: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-8 text-center text-sm" style={{ color: theme.colors.textSecondary }}>
+          <div className="mt-6 md:mt-8 text-center text-xs md:text-sm" style={{ color: theme.colors.textSecondary }}>
             <p>Fully responsive design • Optimized for mobile viewing • Ready for Vercel deployment</p>
           </div>
         </div>
