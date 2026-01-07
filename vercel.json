@@ -1,8 +1,14 @@
 {
-  "redirects": [
+  "version": 2,
+  "public": true,
+  "builds": [
     {
-      "source": "/",
-      "destination": "/thalia-app"
+      "src": "thalia-app/package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
     }
+  ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "thalia-app/$1" }
   ]
 }
