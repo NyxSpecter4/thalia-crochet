@@ -12,6 +12,7 @@ const PatternViewer: React.FC = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<number | null>(null)
   const [isCouncilOpen, setIsCouncilOpen] = useState<boolean>(false)
   const [canvasDimensions, setCanvasDimensions] = useState({ width: 800, height: 600 })
+  const [isMobileAccordionOpen, setIsMobileAccordionOpen] = useState<boolean>(false)
   
   const { theme, cycleEra } = useTheme()
 
@@ -206,6 +207,30 @@ const PatternViewer: React.FC = () => {
     setSelectedNodeId(null)
   }
 
+  const handleGeneratePattern = () => {
+    // Generate new nodes with slight random variation
+    const baseNodes = generateHyperbolicNodes(curvature, 24)
+    const variedNodes = baseNodes.map(node => ({
+      ...node,
+      x: node.x + (Math.random() - 0.5) * 30,
+      y: node.y + (Math.random() - 0.5) * 30,
+    }))
+    setNodes(variedNodes)
+    // Optionally reset selected node
+    setSelectedNodeId(null)
+  }
+
+  const handleExportVisualization = () => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    
+    // Create a temporary link to download the canvas as PNG
+    const link = document.createElement('a')
+    link.download = `thalia-pattern-${curvature.toFixed(2)}-${Date.now()}.png`
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+  }
+
   const pattern = generatePattern(curvature)
 
   return (
@@ -248,7 +273,7 @@ const PatternViewer: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            <div className="md:col-span-2 lg:col-span-1 rounded-2xl p-4 md:p-6 border" style={{ backgroundColor: theme.colors.card + '80', borderColor: theme.colors.border }}>
+            <div className="hidden md:block md:col-span-2 lg:col-span-1 rounded-2xl p-4 md:p-6 border" style={{ backgroundColor: theme.colors.card + '80', borderColor: theme.colors.border }}>
               <div className="mb-8">
                 <h3 className="text-lg md:text-xl font-semibold mb-4" style={{ color: theme.colors.accent }}>Curvature Controls</h3>
                 
@@ -280,7 +305,11 @@ const PatternViewer: React.FC = () => {
                           backgroundColor: theme.colors.border,
                           accentColor: theme.colors.primary,
                           WebkitAppearance: 'none',
-                          MozAppearance: 'none'
+                          MozAppearance: 'none',
+                          ...(theme.name === 'Future' && {
+                            boxShadow: `0 0 15px ${theme.colors.accent}`,
+                            border: `1px solid ${theme.colors.accent}`,
+                          })
                         }}
                       />
                       <div className="absolute -top-1 left-0 right-0 h-8 md:h-6 pointer-events-none" /> {/* Touch target extension */}
@@ -334,12 +363,18 @@ const PatternViewer: React.FC = () => {
               </div>
 
               <div className="space-y-4">
-                <button className="w-full py-3 px-4 rounded-lg font-medium transition-colors duration-200 hover:opacity-90"
-                  style={{ backgroundColor: theme.colors.primary, color: theme.colors.text }}>
+                <button
+                  onClick={handleGeneratePattern}
+                  className="w-full py-3 px-4 rounded-lg font-medium transition-colors duration-200 hover:opacity-90"
+                  style={{ backgroundColor: theme.colors.primary, color: theme.colors.text }}
+                >
                   Generate Pattern
                 </button>
-                <button className="w-full py-3 px-4 rounded-lg font-medium transition-colors duration-200 hover:opacity-90"
-                  style={{ backgroundColor: theme.colors.accent, color: theme.colors.background }}>
+                <button
+                  onClick={handleExportVisualization}
+                  className="w-full py-3 px-4 rounded-lg font-medium transition-colors duration-200 hover:opacity-90"
+                  style={{ backgroundColor: theme.colors.accent, color: theme.colors.background }}
+                >
                   Export Visualization
                 </button>
               </div>
@@ -352,6 +387,108 @@ const PatternViewer: React.FC = () => {
                   <div className="text-xs md:text-sm" style={{ color: theme.colors.textSecondary }}>
                     {nodes.length} nodes • K = {curvature.toFixed(2)} • {selectedNodeId !== null ? `Node #${selectedNodeId} selected` : 'Click a node'}
                   </div>
+                </div>
+
+                {/* Mobile‑only slider and buttons */}
+                <div className="block md:hidden mb-6">
+                  <div className="rounded-lg p-4 border" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
+                    <h4 className="font-medium mb-3" style={{ color: theme.colors.accent }}>Curvature Slider</h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <label style={{ color: theme.colors.text }}>Curvature (K): {curvature.toFixed(2)}</label>
+                        <span className="text-sm px-3 py-1 rounded-full" style={{
+                          backgroundColor: curvature < 0 ? theme.colors.accent + '20' :
+                                        curvature > 0 ? theme.colors.primary + '20' :
+                                        theme.colors.border,
+                          color: curvature < 0 ? theme.colors.accent :
+                                curvature > 0 ? theme.colors.primary :
+                                theme.colors.textSecondary
+                        }}>
+                          {curvature < 0 ? 'Hyperbolic' : curvature > 0 ? 'Spherical' : 'Euclidean'}
+                        </span>
+                      </div>
+                      <div className="relative py-2">
+                        <input
+                          type="range"
+                          min="-1"
+                          max="1"
+                          step="0.01"
+                          value={curvature}
+                          onChange={(e) => handleCurvatureChange(parseFloat(e.target.value))}
+                          className="w-full h-4 rounded-lg appearance-none cursor-pointer slider-thumb touch-manipulation"
+                          style={{
+                            backgroundColor: theme.colors.border,
+                            accentColor: theme.colors.primary,
+                            WebkitAppearance: 'none',
+                            MozAppearance: 'none',
+                            ...(theme.name === 'Future' && {
+                              boxShadow: `0 0 15px ${theme.colors.accent}`,
+                              border: `1px solid ${theme.colors.accent}`,
+                            })
+                          }}
+                        />
+                        <div className="absolute -top-1 left-0 right-0 h-8 pointer-events-none" />
+                      </div>
+                      <div className="flex justify-between text-xs" style={{ color: theme.colors.textSecondary }}>
+                        <span>-1.0</span>
+                        <span>0.0</span>
+                        <span>+1.0</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile accordion for Curvature Effects & Logic Verification */}
+                <div className="block md:hidden mb-6">
+                  <button
+                    onClick={() => setIsMobileAccordionOpen(!isMobileAccordionOpen)}
+                    className="w-full py-3 px-4 rounded-lg font-medium transition-colors duration-200 flex items-center justify-between"
+                    style={{ backgroundColor: theme.colors.card, border: `1px solid ${theme.colors.border}`, color: theme.colors.text }}
+                  >
+                    <span>Curvature Effects & Logic Verification</span>
+                    <span>{isMobileAccordionOpen ? '▲' : '▼'}</span>
+                  </button>
+                  {isMobileAccordionOpen && (
+                    <div className="mt-3 space-y-3">
+                      <div className="rounded-lg p-4 border" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+                        <h4 className="font-medium mb-2" style={{ color: theme.colors.text }}>Curvature Effects</h4>
+                        <ul className="space-y-2 text-sm">
+                          <li className="flex items-center">
+                            <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: theme.colors.accent }}></div>
+                            <span style={{ color: theme.colors.textSecondary }}>K {'<'} 0: Increase stitches (n:n+1)</span>
+                          </li>
+                          <li className="flex items-center">
+                            <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: theme.colors.primary }}></div>
+                            <span style={{ color: theme.colors.textSecondary }}>K {'>'} 0: Decrease stitches (n:n-1)</span>
+                          </li>
+                          <li className="flex items-center">
+                            <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: theme.colors.border }}></div>
+                            <span style={{ color: theme.colors.textSecondary }}>K = 0: Maintain stitch count</span>
+                          </li>
+                        </ul>
+                      </div>
+                      {verificationResults && (
+                        <div className="rounded-lg p-4 border" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+                          <h4 className="font-medium mb-3 text-base" style={{ color: theme.colors.text }}>Logic Verification</h4>
+                          <div className="space-y-2">
+                            {Object.entries(verificationResults).map(([test, passed]) => (
+                              <div key={test} className="flex items-center justify-between">
+                                <span className="text-xs capitalize" style={{ color: theme.colors.textSecondary }}>
+                                  {test.replace(/_/g, ' ')}:
+                                </span>
+                                <span className="text-xs px-2 py-1 rounded" style={{
+                                  backgroundColor: passed ? theme.colors.primary + '20' : '#ef444420',
+                                  color: passed ? theme.colors.primary : '#ef4444'
+                                }}>
+                                  {passed ? '✓ Passed' : '✗ Failed'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="relative" ref={containerRef}>
@@ -378,6 +515,26 @@ const PatternViewer: React.FC = () => {
                         Each node represents a stitch. Negative curvature creates expanding patterns suitable for ruffles and corals.
                       </p>
                     </div>
+                  </div>
+                </div>
+
+                {/* Mobile‑only buttons row */}
+                <div className="block md:hidden mt-6">
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleGeneratePattern}
+                      className="flex-1 py-3 px-4 rounded-lg font-medium transition-colors duration-200 hover:opacity-90"
+                      style={{ backgroundColor: theme.colors.primary, color: theme.colors.text }}
+                    >
+                      Generate Pattern
+                    </button>
+                    <button
+                      onClick={handleExportVisualization}
+                      className="flex-1 py-3 px-4 rounded-lg font-medium transition-colors duration-200 hover:opacity-90"
+                      style={{ backgroundColor: theme.colors.accent, color: theme.colors.background }}
+                    >
+                      Export Visualization
+                    </button>
                   </div>
                 </div>
 
