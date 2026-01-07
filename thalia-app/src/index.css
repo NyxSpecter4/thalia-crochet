@@ -1,0 +1,77 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+@theme {
+  --color-background-slate: #0f172a;
+  --color-primary-emerald: #059669;
+  --color-accent-gold: #fbbf24;
+}
+
+@layer base {
+  body {
+    @apply bg-background-slate text-slate-100 font-sans;
+    margin: 0;
+    min-height: 100vh;
+    background-color: #0f172a;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-serif tracking-tight;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl;
+  }
+}
+
+@layer components {
+  .hero-gradient {
+    background: linear-gradient(135deg, #059669 0%, #0f172a 50%, #fbbf24 100%);
+  }
+
+  .stitch-node {
+    @apply rounded-full border-2 border-accent-gold bg-primary-emerald/20;
+  }
+
+  .pattern-grid {
+    background-image: 
+      linear-gradient(to right, #1e293b 1px, transparent 1px),
+      linear-gradient(to bottom, #1e293b 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(5, 150, 105, 0.5);
+  }
+
+  .border-glow {
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+  }
+
+  .slider-thumb::-webkit-slider-thumb {
+    appearance: none;
+    height: 1rem;
+    width: 1rem;
+    border-radius: 9999px;
+    background-color: #fbbf24;
+  }
+}
