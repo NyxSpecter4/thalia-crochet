@@ -98,6 +98,16 @@
     box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
   }
 
+  /* Reduce glow intensity on mobile for better performance */
+  @media (max-width: 768px) {
+    .text-glow {
+      text-shadow: 0 0 10px rgba(5, 150, 105, 0.4);
+    }
+    .border-glow {
+      box-shadow: 0 0 8px rgba(251, 191, 36, 0.2);
+    }
+  }
+
   .slider-thumb::-webkit-slider-thumb {
     appearance: none;
     height: 1rem;

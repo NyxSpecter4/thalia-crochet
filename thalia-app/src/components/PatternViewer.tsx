@@ -42,6 +42,14 @@ const PatternViewer: React.FC = () => {
     return () => clearTimeout(timer)
   }, [updateCanvasDimensions])
 
+  // Update canvas when sidebar opens/closes (container width changes)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateCanvasDimensions()
+    }, 150) // Slight delay to allow DOM to update
+    return () => clearTimeout(timer)
+  }, [isCouncilOpen, updateCanvasDimensions])
+
   useEffect(() => {
     const newNodes = generateHyperbolicNodes(curvature, 24)
     setNodes(newNodes)
@@ -209,17 +217,17 @@ const PatternViewer: React.FC = () => {
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif text-glow" style={{ color: theme.colors.accent }}>
                 THALIA
               </h1>
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full md:w-auto">
                 <button
                   onClick={cycleEra}
-                  className="px-4 py-3 md:py-2 rounded-lg font-medium transition-all hover:scale-105 active:scale-95 w-full md:w-auto"
+                  className="px-6 py-4 md:px-4 md:py-3 rounded-lg font-medium transition-all hover:scale-105 active:scale-95 w-full md:w-auto min-h-[44px] flex items-center justify-center"
                   style={{ backgroundColor: theme.colors.primary, color: theme.colors.text }}
                 >
                   {theme.name} Era
                 </button>
                 <button
                   onClick={() => setIsCouncilOpen(!isCouncilOpen)}
-                  className="px-4 py-3 md:py-2 rounded-lg font-medium transition-all hover:scale-105 active:scale-95 w-full md:w-auto"
+                  className="px-6 py-4 md:px-4 md:py-3 rounded-lg font-medium transition-all hover:scale-105 active:scale-95 w-full md:w-auto min-h-[44px] flex items-center justify-center"
                   style={{ backgroundColor: theme.colors.accent, color: theme.colors.background }}
                 >
                   {isCouncilOpen ? 'Close Council' : 'Open Council'}

@@ -25,9 +25,9 @@ const CouncilSidebar: React.FC<CouncilSidebarProps> = ({ isOpen, onClose, select
   if (!isOpen) return null;
   
   return (
-    <div 
-      className="fixed right-0 top-0 h-full w-96 bg-card border-l border-border shadow-2xl z-50 overflow-y-auto transition-transform duration-300"
-      style={{ 
+    <div
+      className="fixed md:right-0 md:top-0 md:h-full md:w-96 bottom-0 left-0 md:left-auto w-full md:max-h-full max-h-[85vh] bg-card border-t md:border-l border-border shadow-2xl z-50 overflow-y-auto transition-transform duration-300"
+      style={{
         backgroundColor: theme.colors.card,
         borderColor: theme.colors.border,
         color: theme.colors.text
@@ -171,44 +171,54 @@ const CouncilSidebar: React.FC<CouncilSidebarProps> = ({ isOpen, onClose, select
             
             <div className="space-y-4">
               {councilMembers.map(member => (
-                <div 
+                <div
                   key={member.id}
                   onClick={() => handleMemberClick(member)}
                   className="p-4 rounded-lg cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  style={{ 
+                  style={{
                     backgroundColor: theme.colors.background,
                     border: `1px solid ${theme.colors.border}`,
                     borderLeft: `4px solid ${member.color}`
                   }}
                 >
-                  <div className="flex items-center">
-                    <div 
-                      className="w-12 h-12 rounded-full flex items-center justify-center text-xl mr-4"
-                      style={{ backgroundColor: member.color + '20', color: member.color }}
-                    >
-                      {member.icon}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold">{member.name}</h3>
-                      <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
-                        {member.title}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs px-2 py-1 rounded-full mb-1" style={{ 
-                        backgroundColor: member.color + '20',
-                        color: member.color
-                      }}>
-                        {member.expertise.length} specialties
+                  <div className="flex flex-col md:flex-row md:items-center">
+                    <div className="flex items-center mb-3 md:mb-0 md:mr-4">
+                      <div
+                        className="w-12 h-12 rounded-full flex items-center justify-center text-xl mr-4"
+                        style={{ backgroundColor: member.color + '20', color: member.color }}
+                      >
+                        {member.icon}
                       </div>
-                      {selectedNodeId && insights.filter(i => i.councilMemberId === member.id).length > 0 && (
-                        <div className="text-xs px-2 py-1 rounded-full" style={{ 
-                          backgroundColor: theme.colors.primary + '20',
-                          color: theme.colors.primary
+                      <div className="flex-1 md:hidden">
+                        <h3 className="font-bold">{member.name}</h3>
+                        <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                          {member.title}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex-1 md:flex md:items-center md:justify-between">
+                      <div className="hidden md:block">
+                        <h3 className="font-bold">{member.name}</h3>
+                        <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                          {member.title}
+                        </p>
+                      </div>
+                      <div className="flex flex-col md:flex-row md:items-center gap-2 mt-2 md:mt-0">
+                        <div className="text-xs px-2 py-1 rounded-full self-start md:self-auto" style={{
+                          backgroundColor: member.color + '20',
+                          color: member.color
                         }}>
-                          {insights.filter(i => i.councilMemberId === member.id).length} insight{insights.filter(i => i.councilMemberId === member.id).length !== 1 ? 's' : ''}
+                          {member.expertise.length} specialties
                         </div>
-                      )}
+                        {selectedNodeId && insights.filter(i => i.councilMemberId === member.id).length > 0 && (
+                          <div className="text-xs px-2 py-1 rounded-full self-start md:self-auto" style={{
+                            backgroundColor: theme.colors.primary + '20',
+                            color: theme.colors.primary
+                          }}>
+                            {insights.filter(i => i.councilMemberId === member.id).length} insight{insights.filter(i => i.councilMemberId === member.id).length !== 1 ? 's' : ''}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
