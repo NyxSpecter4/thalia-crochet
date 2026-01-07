@@ -2,6 +2,9 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import PatternViewer from './components/PatternViewer';
 import ComparisonPage from './pages/ComparisonPage';
+import AuditDashboard from './pages/AuditDashboard';
+import AtlasDemo from './components/atlas/AtlasDemo';
+import AIPanel from './components/AIPanel';
 import { useTheme } from './context/ThemeContext';
 import './App.css';
 
@@ -35,6 +38,42 @@ function Navigation() {
           >
             Multi‑Era Comparison
           </Link>
+          <Link
+            to="/audit"
+            className="px-4 py-2 rounded-lg font-medium transition-colors hover:opacity-90 relative overflow-hidden group"
+            style={{
+              backgroundColor: '#D4AF37',
+              color: '#1a1a1a',
+              boxShadow: '0 0 15px rgba(212, 175, 55, 0.5)'
+            }}
+          >
+            <span className="font-bold">STRATEGIC AUDIT</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-300/40 to-transparent group-hover:animate-shimmer" />
+          </Link>
+          <Link
+            to="/atlas"
+            className="px-4 py-2 rounded-lg font-medium transition-colors hover:opacity-90 relative overflow-hidden group"
+            style={{
+              backgroundColor: '#7C3AED',
+              color: '#ffffff',
+              boxShadow: '0 0 15px rgba(124, 58, 237, 0.5)'
+            }}
+          >
+            <span className="font-bold">3D WORLD ATLAS</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-300/40 to-transparent group-hover:animate-shimmer" />
+          </Link>
+          <Link
+            to="/ai-panel"
+            className="px-4 py-2 rounded-lg font-medium transition-colors hover:opacity-90 relative overflow-hidden group"
+            style={{
+              backgroundColor: '#10B981',
+              color: '#ffffff',
+              boxShadow: '0 0 15px rgba(16, 185, 129, 0.5)'
+            }}
+          >
+            <span className="font-bold">AI PANEL</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-300/40 to-transparent group-hover:animate-shimmer" />
+          </Link>
           <button
             onClick={cycleEra}
             className="px-4 py-2 rounded-lg font-medium transition-colors hover:opacity-90"
@@ -56,6 +95,9 @@ function App() {
         <Routes>
           <Route path="/" element={<PatternViewer />} />
           <Route path="/comparison" element={<ComparisonPage />} />
+          <Route path="/audit" element={<AuditDashboard />} />
+          <Route path="/atlas" element={<AtlasDemo />} />
+          <Route path="/ai-panel" element={<AIPanel />} />
         </Routes>
       </Router>
     </ThemeProvider>

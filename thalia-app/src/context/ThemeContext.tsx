@@ -81,7 +81,10 @@ const ancientTheme: ThemeConfig = {
     monoFont: "'Crimson Text', serif",
   },
   textures: {
-    background: 'url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' viewBox=\'0 0 100 100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z\' fill=\'%23d4a574\' fill-opacity=\'0.1\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")',
+    background: `
+      linear-gradient(135deg, #d4a574 0%, #e2c391 100%),
+      url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='silk' patternUnits='userSpaceOnUse' width='40' height='40'%3E%3Cpath d='M0,20 Q10,15 20,20 T40,20' stroke='%23c53030' stroke-width='0.5' fill='none' opacity='0.1'/%3E%3Cpath d='M20,0 Q25,10 20,20 T20,40' stroke='%23d69e2e' stroke-width='0.5' fill='none' opacity='0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23silk)' opacity='0.3'/%3E%3C/svg%3E")
+    `,
     pattern: 'linear-gradient(135deg, #c53030 0%, #d4a574 50%, #d69e2e 100%)',
   },
 };
@@ -108,12 +111,16 @@ const futureTheme: ThemeConfig = {
     monoFont: "'Share Tech Mono', monospace",
   },
   textures: {
-    background: 'radial-gradient(circle at 50% 50%, #0a0a0f 0%, #000005 100%)',
+    background: `
+      radial-gradient(circle at 50% 50%, #0a0a0f 0%, #000005 100%),
+      repeating-linear-gradient(0deg, transparent, transparent 2px, #00f5ff05 2px, #00f5ff05 4px),
+      repeating-linear-gradient(90deg, transparent, transparent 2px, #ff00ff03 2px, #ff00ff03 4px)
+    `,
     pattern: 'linear-gradient(135deg, #00f5ff 0%, #0a0a0f 50%, #ff00ff 100%)',
   },
 };
 
-const themes: Record<Era, ThemeConfig> = {
+export const themes: Record<Era, ThemeConfig> = {
   modern: modernTheme,
   ancient: ancientTheme,
   future: futureTheme,

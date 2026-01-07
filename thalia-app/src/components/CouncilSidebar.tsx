@@ -1,30 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { councilMembers, getInsightsForNode, type CouncilMember } from '../data/council';
 import { useTheme } from '../context/ThemeContext';
-import { fetchExpertQuotesForNode, extractMeaning, extractTechnicalRecipe } from '../services/researchService';
+import { fetchExpertQuotesForNode, extractMeaning, extractTechnicalRecipe, fetchEraSpecificResearch } from '../services/researchService';
+import { type StitchNode } from '../lib/geometry';
 
 interface CouncilSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   selectedNodeId: number | null;
+  nodes?: StitchNode[];
 }
 
-const CouncilSidebar: React.FC<CouncilSidebarProps> = ({ isOpen, onClose, selectedNodeId }) => {
-  const { theme } = useTheme();
+const CouncilSidebar: React.FC<CouncilSidebarProps> = ({ isOpen, onClose, selectedNodeId, nodes = [] }) => {
+  const { theme, era } = useTheme();
   const [selectedMember, setSelectedMember] = useState<CouncilMember | null>(null);
   const [expertQuotes, setExpertQuotes] = useState<any[]>([]);
+  const [eraResearch, setEraResearch] = useState<any[]>([]);
   
   const insights = selectedNodeId ? getInsightsForNode(selectedNodeId) : [];
   
   useEffect(() => {
     if (selectedNodeId !== null) {
-      fetchExpertQuotesForNode(selectedNodeId).then(quotes => {
+      // Fetch expert quotes for the current era
+      fetchExpertQuotesForNode(selectedNodeId, era).then(quotes => {
         setExpertQuotes(quotes);
+      });
+      
+      // Also fetch general era research for context
+      fetchEraSpecificResearch(era).then(research => {
+        setEraResearch(research);
       });
     } else {
       setExpertQuotes([]);
+      setEraResearch([]);
     }
-  }, [selectedNodeId]);
+  }, [selectedNodeId, era]);
   
   const handleMemberClick = (member: CouncilMember) => {
     setSelectedMember(member);
@@ -77,7 +87,30 @@ const CouncilSidebar: React.FC<CouncilSidebarProps> = ({ isOpen, onClose, select
               <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: theme.colors.primary }} />
               <span className="font-medium">Selected Node: #{selectedNodeId}</span>
             </div>
-            <p className="text-sm mt-1" style={{ color: theme.colors.textSecondary }}>
+            
+            {/* Stitch Instruction */}
+            {nodes && nodes[selectedNodeId] && nodes[selectedNodeId].stitchInstruction && (
+              <div className="mt-2 p-2 rounded border" style={{
+                backgroundColor: theme.colors.card,
+                borderColor: theme.colors.accent
+              }}>
+                <div className="flex items-center text-sm">
+                  <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: theme.colors.accent }} />
+                  <span className="font-medium" style={{ color: theme.colors.accent }}>Stitch Instruction:</span>
+                </div>
+                <p className="text-sm mt-1" style={{ color: theme.colors.text }}>
+                  "{nodes[selectedNodeId].stitchInstruction}"
+                </p>
+                {nodes[selectedNodeId].row && (
+                  <div className="flex text-xs mt-1" style={{ color: theme.colors.textSecondary }}>
+                    <span className="mr-3">Row: {nodes[selectedNodeId].row}</span>
+                    <span>Position: {nodes[selectedNodeId].positionInRow}/{nodes[selectedNodeId].totalInRow}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <p className="text-sm mt-2" style={{ color: theme.colors.textSecondary }}>
               {insights.length} expert insight{insights.length !== 1 ? 's' : ''} available
             </p>
           </div>
@@ -284,7 +317,7 @@ const CouncilSidebar: React.FC<CouncilSidebarProps> = ({ isOpen, onClose, select
             {selectedNodeId && expertQuotes.length > 0 && (
               <div className="mt-8 pt-6 border-t" style={{ borderColor: theme.colors.border }}>
                 <h4 className="font-semibold mb-3" style={{ color: theme.colors.accent }}>
-                  Expert Quotes from Research
+                  Expert Quotes from {era.charAt(0).toUpperCase() + era.slice(1)} Era Research
                 </h4>
                 <div className="space-y-3">
                   {expertQuotes.map((quote, idx) => (
@@ -315,6 +348,101 @@ const CouncilSidebar: React.FC<CouncilSidebarProps> = ({ isOpen, onClose, select
                       )}
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Era-Specific Cultural Insights */}
+            {selectedNodeId && era === 'ancient' && (
+              <div className="mt-8 pt-6 border-t" style={{ borderColor: theme.colors.border }}>
+                <h4 className="font-semibold mb-3" style={{ color: theme.colors.accent }}>
+                  Ancient Era: Oya Chili Pepper Stitch Path
+                </h4>
+                <div className="p-4 rounded-lg" style={{
+                  backgroundColor: theme.colors.card,
+                  border: `1px solid ${theme.colors.border}`
+                }}>
+                  <div className="flex items-start mb-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center mr-3" style={{
+                      backgroundColor: '#c5303020',
+                      color: '#c53030'
+                    }}>
+                      🌶️
+                    </div>
+                    <div>
+                      <h5 className="font-bold">Turkish Oya Chili Pepper Motif</h5>
+                      <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                        Symbolizes protection and spice in Anatolian folk tradition
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <h6 className="text-sm font-semibold mb-1" style={{ color: theme.colors.text }}>
+                        Stitch Path Sequence
+                      </h6>
+                      <ol className="text-sm space-y-1 pl-5 list-decimal" style={{ color: theme.colors.textSecondary }}>
+                        <li>Magic ring with 6 sc (red thread)</li>
+                        <li>Round 2: 2 sc in each stitch around (12 sts)</li>
+                        <li>Round 3: [sc in next st, 2 sc in next] repeat (18 sts)</li>
+                        <li>Round 4-5: sc in each stitch around</li>
+                        <li>Round 6: [sc in next 2 sts, sc2tog] repeat (12 sts)</li>
+                        <li>Round 7: [sc2tog] repeat (6 sts)</li>
+                        <li>Fasten off, leaving tail for stem</li>
+                      </ol>
+                    </div>
+                    
+                    <div>
+                      <h6 className="text-sm font-semibold mb-1" style={{ color: theme.colors.text }}>
+                        Symbolic Meaning
+                      </h6>
+                      <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                        In Turkish Oya, chili peppers ward off the evil eye. The pointed shape and red color represent
+                        protection, while the increasing stitch count in rounds 2-3 creates the characteristic bulbous form.
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <h6 className="text-sm font-semibold mb-1" style={{ color: theme.colors.text }}>
+                        Technical Blueprint
+                      </h6>
+                      <div className="text-xs font-mono p-2 rounded" style={{
+                        backgroundColor: theme.colors.background,
+                        color: theme.colors.textSecondary
+                      }}>
+                        <div>Curvature: K = -0.3 (slightly hyperbolic)</div>
+                        <div>Stitch progression: 6 → 12 → 18 → 18 → 18 → 12 → 6</div>
+                        <div>Yarn: Silk thread size 30, 0.75mm hook</div>
+                        <div>Special technique: Bead added at tip for "seed"</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Era Research Context */}
+            {selectedNodeId && eraResearch.length > 0 && (
+              <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.colors.border }}>
+                <h4 className="font-semibold mb-3" style={{ color: theme.colors.accent }}>
+                  {era.charAt(0).toUpperCase() + era.slice(1)} Era Context
+                </h4>
+                <div className="space-y-2">
+                  {eraResearch.slice(0, 2).map((item, idx) => (
+                    <div key={idx} className="text-sm p-2 rounded" style={{
+                      backgroundColor: theme.colors.background,
+                      color: theme.colors.textSecondary
+                    }}>
+                      <div className="font-medium" style={{ color: theme.colors.text }}>{item.title}</div>
+                      <div className="truncate">{item.description || extractMeaning(item)}</div>
+                    </div>
+                  ))}
+                  {eraResearch.length > 2 && (
+                    <div className="text-xs text-center pt-1" style={{ color: theme.colors.textSecondary }}>
+                      +{eraResearch.length - 2} more {era} era research items
+                    </div>
+                  )}
                 </div>
               </div>
             )}

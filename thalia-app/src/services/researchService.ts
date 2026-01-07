@@ -46,17 +46,40 @@ export async function fetchResearchByTags(tags: string[]): Promise<CulturalResea
   return data as CulturalResearchItem[];
 }
 
-export async function fetchExpertQuotesForNode(nodeId: number): Promise<CulturalResearchItem[]> {
-  // Assuming there's a column 'node_id' or we can filter by tags
-  const { data, error } = await supabase
+export async function fetchExpertQuotesForNode(nodeId: number, era?: 'ancient' | 'modern' | 'future' | 'expert'): Promise<CulturalResearchItem[]> {
+  // Build query based on node and era
+  let query = supabase
     .from('cultural_research')
     .select('*')
-    .eq('category', 'expert')
     .contains('tags', [`node_${nodeId}`])
     .order('created_at', { ascending: false });
 
+  // If era is provided, filter by category (which corresponds to era)
+  if (era) {
+    query = query.eq('category', era);
+  } else {
+    // Default to 'expert' category for backward compatibility
+    query = query.eq('category', 'expert');
+  }
+
+  const { data, error } = await query;
+
   if (error) {
     console.error('Error fetching expert quotes for node:', error);
+    return [];
+  }
+  return data as CulturalResearchItem[];
+}
+
+export async function fetchEraSpecificResearch(era: 'ancient' | 'modern' | 'future'): Promise<CulturalResearchItem[]> {
+  const { data, error } = await supabase
+    .from('cultural_research')
+    .select('*')
+    .eq('category', era)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(`Error fetching ${era} era research:`, error);
     return [];
   }
   return data as CulturalResearchItem[];
@@ -89,4 +112,40 @@ export function extractMeaning(item: CulturalResearchItem): string {
     return item.content.meaning || item.content.symbolism || item.content.description || 'No meaning data.';
   }
   return 'No meaning data.';
+}
+
+/**
+ * Save the user's selected era to their profile in the Supabase profiles table.
+ * Requires the user to be authenticated.
+ */
+export async function saveSelectedEra(era: 'ancient' | 'modern' | 'future'): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.warn('User not authenticated, cannot save selected era');
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    // Upsert into profiles table
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        user_id: user.id,
+        selected_era: era,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id',
+      });
+
+    if (error) {
+      console.error('Error saving selected era:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Unexpected error in saveSelectedEra:', err);
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+  }
 }

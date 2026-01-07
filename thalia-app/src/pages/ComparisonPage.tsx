@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import CouncilSidebar from '../components/CouncilSidebar';
-import { fetchResearchByCategory, extractMeaning, extractTechnicalRecipe, type CulturalResearchItem } from '../services/researchService';
+import PatternViewer from '../components/PatternViewer';
+import { useResearchData } from '../hooks/useResearchData';
+import { extractMeaning, extractTechnicalRecipe, saveSelectedEra } from '../services/researchService';
 
 const ComparisonPage: React.FC = () => {
   const { theme: currentTheme, setEra } = useTheme();
   const [selectedNodeId] = useState<number | null>(null);
   const [isCouncilOpen, setIsCouncilOpen] = useState<boolean>(false);
-  const [culturalData, setCulturalData] = useState<CulturalResearchItem[]>([]);
+  const { ancient, modern, future } = useResearchData();
   const [votes, setVotes] = useState<{ [era: string]: number }>(() => {
     // Load votes from localStorage on initial render
     const saved = localStorage.getItem('thalia_era_votes');
@@ -25,20 +27,6 @@ const ComparisonPage: React.FC = () => {
     };
   });
 
-  // Fetch cultural research data by category
-  useEffect(() => {
-    const fetchData = async () => {
-      const [ancient, modern, future] = await Promise.all([
-        fetchResearchByCategory('ancient'),
-        fetchResearchByCategory('modern'),
-        fetchResearchByCategory('future'),
-      ]);
-      // Combine all items
-      setCulturalData([...ancient, ...modern, ...future]);
-    };
-    fetchData();
-  }, []);
-
   const handleVote = (era: 'ancient' | 'modern' | 'future') => {
     setVotes(prev => {
       const newVotes = {
@@ -53,6 +41,25 @@ const ComparisonPage: React.FC = () => {
     alert(`Voted for ${era} era! Thank you for your feedback.`);
   };
 
+  const handleMasteryChallenge = async (era: 'ancient' | 'modern' | 'future') => {
+    try {
+      const { success, error } = await saveSelectedEra(era);
+      if (success) {
+        alert(`Mastery Challenge accepted! You've selected the ${era} era as your focus. Saved to your profile.`);
+      } else {
+        // If user is not authenticated, we still show a success message but note it's local.
+        if (error?.includes('not authenticated')) {
+          alert(`Mastery Challenge accepted! You've selected the ${era} era as your focus. (Sign in to save to your profile.)`);
+        } else {
+          alert(`Mastery Challenge accepted! (Could not save to profile: ${error})`);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save mastery challenge:', error);
+      alert('Could not save mastery challenge. Please try again.');
+    }
+  };
+
   interface CardData {
     title: string;
     description: string;
@@ -62,7 +69,18 @@ const ComparisonPage: React.FC = () => {
   }
 
   const getDataForEra = (era: 'ancient' | 'modern' | 'future'): CardData => {
-    const items = culturalData.filter(d => d.category === era);
+    let items: any[] = [];
+    switch (era) {
+      case 'ancient':
+        items = ancient.items;
+        break;
+      case 'modern':
+        items = modern.items;
+        break;
+      case 'future':
+        items = future.items;
+        break;
+    }
     if (items.length > 0) {
       const item = items[0];
       return {
@@ -179,15 +197,9 @@ const ComparisonPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Pattern Visualization Placeholder */}
+                  {/* Pattern Visualization */}
                   <div className="relative h-48 md:h-64 rounded-xl mb-6 overflow-hidden border" style={{ borderColor: col.accentColor }}>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-6xl md:text-8xl opacity-30">
-                        {col.era === 'ancient' && '𓆉'}
-                        {col.era === 'modern' && '◉'}
-                        {col.era === 'future' && '⟁'}
-                      </div>
-                    </div>
+                    <PatternViewer era={col.era} compact />
                     <div className="absolute bottom-0 left-0 right-0 p-4 backdrop-blur-sm" style={{ backgroundColor: col.bgColor + 'CC' }}>
                       <div className="text-sm md:text-base font-semibold">{data.title}</div>
                       <div className="text-xs md:text-sm" style={{ color: col.accentColor }}>
@@ -212,19 +224,32 @@ const ComparisonPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Vote Section */}
+                  {/* Vote & Mastery Challenge Section */}
                   <div className="border-t pt-4" style={{ borderColor: col.accentColor + '40' }}>
                     <div className="flex justify-between items-center mb-4">
                       <span className="text-sm md:text-base font-medium">Which design speaks to you?</span>
                       <span className="text-lg font-bold" style={{ color: col.accentColor }}>{votes[col.era]} votes</span>
                     </div>
-                    <button
-                      onClick={() => handleVote(col.era)}
-                      className="w-full py-3 px-4 rounded-lg font-bold transition-all hover:opacity-90 active:scale-95"
-                      style={{ backgroundColor: col.accentColor, color: col.era === 'future' ? '#0a0a0f' : '#ffffff' }}
-                    >
-                      Vote for {col.title}
-                    </button>
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => handleVote(col.era)}
+                        className="w-full py-3 px-4 rounded-lg font-bold transition-all hover:opacity-90 active:scale-95"
+                        style={{ backgroundColor: col.accentColor, color: col.era === 'future' ? '#0a0a0f' : '#ffffff' }}
+                      >
+                        Vote for {col.title}
+                      </button>
+                      <button
+                        onClick={() => handleMasteryChallenge(col.era)}
+                        className="w-full py-3 px-4 rounded-lg font-bold transition-all hover:opacity-90 active:scale-95 border-2"
+                        style={{
+                          borderColor: col.accentColor,
+                          backgroundColor: 'transparent',
+                          color: col.accentColor
+                        }}
+                      >
+                        Mastery Challenge: Focus on {col.title}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
