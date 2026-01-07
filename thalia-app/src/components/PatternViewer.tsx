@@ -1,17 +1,22 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { generateHyperbolicNodes, generatePattern, verifyCurvatureLogic } from '../lib/geometry'
+import { useTheme } from '../context/ThemeContext'
+import CouncilSidebar from './CouncilSidebar'
 
 const PatternViewer: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [curvature, setCurvature] = useState<number>(-0.5)
   const [nodes, setNodes] = useState(generateHyperbolicNodes(-0.5, 24))
   const [verificationResults, setVerificationResults] = useState<{ [key: string]: boolean } | null>(null)
+  const [selectedNodeId, setSelectedNodeId] = useState<number | null>(null)
+  const [isCouncilOpen, setIsCouncilOpen] = useState<boolean>(false)
+  
+  const { theme, cycleEra } = useTheme()
 
   useEffect(() => {
     const newNodes = generateHyperbolicNodes(curvature, 24)
     setNodes(newNodes)
     
-    // Run verification on component mount
     if (!verificationResults) {
       setVerificationResults(verifyCurvatureLogic())
     }
@@ -24,321 +29,338 @@ const PatternViewer: React.FC = () => {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     
-    // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     
-    // Draw pattern grid background
-    drawGrid(ctx, canvas.width, canvas.height)
+    // Draw grid
+    ctx.fillStyle = theme.colors.background
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
     
-    // Draw hyperbolic nodes
-    drawNodes(ctx, nodes)
-    
-    // Draw connecting lines between nodes
-    drawConnections(ctx, nodes)
-    
-    // Draw curvature indicator
-    drawCurvatureIndicator(ctx, curvature, canvas.width, canvas.height)
-  }, [nodes, curvature])
-
-  const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-    // Dark slate background
-    ctx.fillStyle = '#0f172a'
-    ctx.fillRect(0, 0, width, height)
-    
-    // Grid lines
-    ctx.strokeStyle = '#1e293b'
+    ctx.strokeStyle = theme.colors.border
     ctx.lineWidth = 1
-    
-    // Vertical lines
-    for (let x = 0; x <= width; x += 40) {
+    for (let x = 0; x <= canvas.width; x += 40) {
       ctx.beginPath()
       ctx.moveTo(x, 0)
-      ctx.lineTo(x, height)
+      ctx.lineTo(x, canvas.height)
       ctx.stroke()
     }
-    
-    // Horizontal lines
-    for (let y = 0; y <= height; y += 40) {
+    for (let y = 0; y <= canvas.height; y += 40) {
       ctx.beginPath()
       ctx.moveTo(0, y)
-      ctx.lineTo(width, y)
+      ctx.lineTo(canvas.width, y)
       ctx.stroke()
     }
-  }
-
-  const drawNodes = (ctx: CanvasRenderingContext2D, nodes: any[]) => {
-    nodes.forEach(node => {
-      // Draw glow effect
-      ctx.beginPath()
-      ctx.arc(node.x, node.y, node.size + 3, 0, Math.PI * 2)
-      ctx.fillStyle = `${node.color}40`
-      ctx.fill()
-      
-      // Draw main node
-      ctx.beginPath()
-      ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2)
-      ctx.fillStyle = node.color
-      ctx.fill()
-      
-      // Draw border
-      ctx.beginPath()
-      ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2)
-      ctx.strokeStyle = '#fbbf24'
-      ctx.lineWidth = 1.5
-      ctx.stroke()
-      
-      // Draw inner highlight
-      ctx.beginPath()
-      ctx.arc(node.x - node.size * 0.3, node.y - node.size * 0.3, node.size * 0.4, 0, Math.PI * 2)
-      ctx.fillStyle = '#ffffff40'
-      ctx.fill()
-    })
-  }
-
-  const drawConnections = (ctx: CanvasRenderingContext2D, nodes: any[]) => {
-    ctx.strokeStyle = '#05966980'
-    ctx.lineWidth = 1
     
-    // Connect each node to its neighbors
+    // Draw connections
+    ctx.strokeStyle = theme.colors.primary + '80'
+    ctx.lineWidth = 1
     for (let i = 0; i < nodes.length; i++) {
       const node1 = nodes[i]
       const node2 = nodes[(i + 1) % nodes.length]
-      
       ctx.beginPath()
       ctx.moveTo(node1.x, node1.y)
       ctx.lineTo(node2.x, node2.y)
       ctx.stroke()
-      
-      // Draw additional hyperbolic connections for negative curvature
-      if (curvature < 0) {
-        const node3 = nodes[(i + Math.floor(nodes.length / 3)) % nodes.length]
-        ctx.beginPath()
-        ctx.moveTo(node1.x, node1.y)
-        ctx.lineTo(node3.x, node3.y)
-        ctx.strokeStyle = '#fbbf2460'
-        ctx.stroke()
-        ctx.strokeStyle = '#05966980'
-      }
     }
-  }
-
-  const drawCurvatureIndicator = (
-    ctx: CanvasRenderingContext2D,
-    curvature: number,
-    width: number,
-    _height: number
-  ) => {
-    const centerX = width - 100
+    
+    // Draw nodes
+    nodes.forEach((node, index) => {
+      ctx.beginPath()
+      ctx.arc(node.x, node.y, node.size + 3, 0, Math.PI * 2)
+      ctx.fillStyle = `${theme.colors.primary}40`
+      ctx.fill()
+      
+      ctx.beginPath()
+      ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2)
+      ctx.fillStyle = curvature < 0 ? theme.colors.accent : theme.colors.primary
+      ctx.fill()
+      
+      ctx.beginPath()
+      ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2)
+      ctx.strokeStyle = theme.colors.accent
+      ctx.lineWidth = 1.5
+      ctx.stroke()
+      
+      ctx.fillStyle = theme.colors.text
+      ctx.font = '10px ' + theme.typography.monoFont
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(index.toString(), node.x, node.y)
+    })
+    
+    // Draw selected node
+    if (selectedNodeId !== null && nodes[selectedNodeId]) {
+      const node = nodes[selectedNodeId]
+      ctx.beginPath()
+      ctx.arc(node.x, node.y, node.size + 10, 0, Math.PI * 2)
+      ctx.strokeStyle = theme.colors.accent
+      ctx.lineWidth = 2
+      ctx.setLineDash([5, 5])
+      ctx.stroke()
+      ctx.setLineDash([])
+    }
+    
+    // Draw curvature indicator
+    const centerX = canvas.width - 100
     const centerY = 100
     const radius = 40
-    
-    // Draw curvature gauge background
     ctx.beginPath()
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
-    ctx.fillStyle = '#1e293b'
+    ctx.fillStyle = theme.colors.card
     ctx.fill()
     
-    // Draw gauge
     const angle = Math.PI * 0.75 + (curvature * Math.PI * 0.5)
     ctx.beginPath()
     ctx.moveTo(centerX, centerY)
-    ctx.lineTo(
-      centerX + Math.cos(angle) * radius * 0.8,
-      centerY + Math.sin(angle) * radius * 0.8
-    )
-    ctx.strokeStyle = curvature < 0 ? '#fbbf24' : '#059669'
+    ctx.lineTo(centerX + Math.cos(angle) * radius * 0.8, centerY + Math.sin(angle) * radius * 0.8)
+    ctx.strokeStyle = curvature < 0 ? theme.colors.accent : theme.colors.primary
     ctx.lineWidth = 3
     ctx.stroke()
     
-    // Draw labels
-    ctx.fillStyle = '#cbd5e1'
-    ctx.font = '12px JetBrains Mono'
+    ctx.fillStyle = theme.colors.textSecondary
+    ctx.font = '12px ' + theme.typography.monoFont
     ctx.textAlign = 'center'
     ctx.fillText('K < 0', centerX - 30, centerY + 60)
     ctx.fillText('Hyperbolic', centerX - 30, centerY + 75)
     ctx.fillText('K > 0', centerX + 30, centerY + 60)
     ctx.fillText('Spherical', centerX + 30, centerY + 75)
-  }
+  }, [nodes, curvature, selectedNodeId, theme])
 
   const handleCurvatureChange = (value: number) => {
     setCurvature(value)
+    setSelectedNodeId(null)
+  }
+
+  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    
+    const rect = canvas.getBoundingClientRect()
+    const x = event.clientX - rect.left
+    const y = event.clientY - rect.top
+    
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i]
+      const distance = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2)
+      if (distance <= node.size + 5) {
+        setSelectedNodeId(i)
+        setIsCouncilOpen(true)
+        return
+      }
+    }
+    
+    setSelectedNodeId(null)
   }
 
   const pattern = generatePattern(curvature)
 
   return (
-    <div className="min-h-screen bg-background-slate text-slate-100 p-4 md:p-8">
-      {/* Hero Section */}
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-6xl font-serif text-accent-gold mb-4 text-glow">
-            THALIA
-          </h1>
-          <h2 className="text-2xl md:text-3xl font-serif text-primary-emerald mb-2">
-            Computational Crochet Engine
-          </h2>
-          <p className="text-slate-400 max-w-2xl mx-auto">
-            Visualizing hyperbolic (K {'<'} 0) and spherical (K {'>'} 0) stitch patterns through geometric curvature mathematics
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Panel - Controls */}
-          <div className="lg:col-span-1 bg-slate-800/50 rounded-2xl p-6 border border-slate-700">
-            <div className="mb-8">
-              <h3 className="text-xl font-semibold text-accent-gold mb-4">Curvature Controls</h3>
-              
-              <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-slate-300">Curvature (K): {curvature.toFixed(2)}</label>
-                    <span className={`text-sm px-3 py-1 rounded-full ${
-                      curvature < 0 ? 'bg-yellow-900/30 text-accent-gold' :
-                      curvature > 0 ? 'bg-emerald-900/30 text-primary-emerald' :
-                      'bg-slate-700 text-slate-300'
-                    }`}>
-                      {curvature < 0 ? 'Hyperbolic' : curvature > 0 ? 'Spherical' : 'Euclidean'}
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="-1"
-                    max="1"
-                    step="0.01"
-                    value={curvature}
-                    onChange={(e) => handleCurvatureChange(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer slider-thumb"
-                  />
-                  <div className="flex justify-between text-sm text-slate-400 mt-2">
-                    <span>-1.0</span>
-                    <span>0.0</span>
-                    <span>+1.0</span>
-                  </div>
-                </div>
-
-                <div className="bg-slate-900/50 rounded-lg p-4">
-                  <h4 className="font-medium text-slate-300 mb-2">Curvature Effects</h4>
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex items-center">
-                      <div className="w-3 h-3 rounded-full bg-accent-gold mr-2"></div>
-                      <span>K {'<'} 0: Increase stitches (n:n+1)</span>
-                    </li>
-                    <li className="flex items-center">
-                      <div className="w-3 h-3 rounded-full bg-primary-emerald mr-2"></div>
-                      <span>K {'>'} 0: Decrease stitches (n:n-1)</span>
-                    </li>
-                    <li className="flex items-center">
-                      <div className="w-3 h-3 rounded-full bg-slate-500 mr-2"></div>
-                      <span>K = 0: Maintain stitch count</span>
-                    </li>
-                  </ul>
-                </div>
-
-                {verificationResults && (
-                  <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                    <h4 className="font-medium text-slate-300 mb-3">Logic Verification</h4>
-                    <div className="space-y-2">
-                      {Object.entries(verificationResults).map(([test, passed]) => (
-                        <div key={test} className="flex items-center justify-between">
-                          <span className="text-sm text-slate-400 capitalize">
-                            {test.replace(/_/g, ' ')}:
-                          </span>
-                          <span className={`text-sm px-2 py-1 rounded ${
-                            passed ? 'bg-emerald-900/30 text-emerald-400' : 'bg-red-900/30 text-red-400'
-                          }`}>
-                            {passed ? '✓ Passed' : '✗ Failed'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+    <>
+      <div className="min-h-screen p-4 md:p-8" style={{ backgroundColor: theme.colors.background, color: theme.colors.text }}>
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="flex justify-center items-center gap-4 mb-4">
+              <h1 className="text-4xl md:text-6xl font-serif text-glow" style={{ color: theme.colors.accent }}>
+                THALIA
+              </h1>
+              <div className="flex gap-2">
+                <button
+                  onClick={cycleEra}
+                  className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
+                  style={{ backgroundColor: theme.colors.primary, color: theme.colors.text }}
+                >
+                  {theme.name} Era
+                </button>
+                <button
+                  onClick={() => setIsCouncilOpen(!isCouncilOpen)}
+                  className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 active:scale-95"
+                  style={{ backgroundColor: theme.colors.accent, color: theme.colors.background }}
+                >
+                  {isCouncilOpen ? 'Close Council' : 'Open Council'}
+                </button>
               </div>
             </div>
-
-            <div className="space-y-4">
-              <button className="w-full bg-primary-emerald hover:bg-emerald-700 text-white py-3 px-4 rounded-lg font-medium transition-colors duration-200">
-                Generate Pattern
-              </button>
-              <button className="w-full bg-accent-gold hover:bg-yellow-700 text-slate-900 py-3 px-4 rounded-lg font-medium transition-colors duration-200">
-                Export Visualization
-              </button>
+            <h2 className="text-2xl md:text-3xl font-serif mb-2" style={{ color: theme.colors.primary }}>
+              Computational Crochet Engine
+            </h2>
+            <p className="max-w-2xl mx-auto" style={{ color: theme.colors.textSecondary }}>
+              Visualizing hyperbolic (K {'<'} 0) and spherical (K {'>'} 0) stitch patterns through geometric curvature mathematics
+            </p>
+            <div className="mt-4 text-sm" style={{ color: theme.colors.textSecondary }}>
+              <span className="px-3 py-1 rounded-full" style={{ backgroundColor: theme.colors.card }}>
+                Era: {theme.name} • Click nodes for expert insights
+              </span>
             </div>
           </div>
 
-          {/* Main Canvas Visualization */}
-          <div className="lg:col-span-2">
-            <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700 h-full">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold text-primary-emerald">Stitch Graph Visualization</h3>
-                <div className="text-sm text-slate-400">
-                  {nodes.length} nodes • K = {curvature.toFixed(2)}
-                </div>
-              </div>
-
-              <div className="relative">
-                <canvas
-                  ref={canvasRef}
-                  width={800}
-                  height={600}
-                  className="w-full h-auto max-h-[600px] rounded-xl border-2 border-slate-700"
-                />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-1 rounded-2xl p-6 border" style={{ backgroundColor: theme.colors.card + '80', borderColor: theme.colors.border }}>
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold mb-4" style={{ color: theme.colors.accent }}>Curvature Controls</h3>
                 
-                {/* Canvas overlay info */}
-                <div className="absolute bottom-4 left-4 bg-slate-900/80 backdrop-blur-sm rounded-lg p-3 max-w-xs">
-                  <div className="text-sm">
-                    <div className="flex items-center mb-2">
-                      <div className="w-3 h-3 rounded-full bg-accent-gold mr-2"></div>
-                      <span className="text-slate-300">Hyperbolic Nodes (K {'<'} 0)</span>
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label style={{ color: theme.colors.text }}>Curvature (K): {curvature.toFixed(2)}</label>
+                      <span className="text-sm px-3 py-1 rounded-full" style={{ 
+                        backgroundColor: curvature < 0 ? theme.colors.accent + '20' : 
+                                      curvature > 0 ? theme.colors.primary + '20' : 
+                                      theme.colors.border,
+                        color: curvature < 0 ? theme.colors.accent : 
+                              curvature > 0 ? theme.colors.primary : 
+                              theme.colors.textSecondary
+                      }}>
+                        {curvature < 0 ? 'Hyperbolic' : curvature > 0 ? 'Spherical' : 'Euclidean'}
+                      </span>
                     </div>
-                    <p className="text-slate-400 text-xs">
-                      Each node represents a stitch. Negative curvature creates expanding patterns suitable for ruffles and corals.
-                    </p>
+                    <input
+                      type="range"
+                      min="-1"
+                      max="1"
+                      step="0.01"
+                      value={curvature}
+                      onChange={(e) => handleCurvatureChange(parseFloat(e.target.value))}
+                      className="w-full h-2 rounded-lg appearance-none cursor-pointer slider-thumb"
+                      style={{ backgroundColor: theme.colors.border, accentColor: theme.colors.primary }}
+                    />
+                    <div className="flex justify-between text-sm mt-2" style={{ color: theme.colors.textSecondary }}>
+                      <span>-1.0</span>
+                      <span>0.0</span>
+                      <span>+1.0</span>
+                    </div>
                   </div>
+
+                  <div className="rounded-lg p-4" style={{ backgroundColor: theme.colors.background }}>
+                    <h4 className="font-medium mb-2" style={{ color: theme.colors.text }}>Curvature Effects</h4>
+                    <ul className="space-y-2 text-sm">
+                      <li className="flex items-center">
+                        <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: theme.colors.accent }}></div>
+                        <span style={{ color: theme.colors.textSecondary }}>K {'<'} 0: Increase stitches (n:n+1)</span>
+                      </li>
+                      <li className="flex items-center">
+                        <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: theme.colors.primary }}></div>
+                        <span style={{ color: theme.colors.textSecondary }}>K {'>'} 0: Decrease stitches (n:n-1)</span>
+                      </li>
+                      <li className="flex items-center">
+                        <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: theme.colors.border }}></div>
+                        <span style={{ color: theme.colors.textSecondary }}>K = 0: Maintain stitch count</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {verificationResults && (
+                    <div className="rounded-lg p-4 border" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+                      <h4 className="font-medium mb-3" style={{ color: theme.colors.text }}>Logic Verification</h4>
+                      <div className="space-y-2">
+                        {Object.entries(verificationResults).map(([test, passed]) => (
+                          <div key={test} className="flex items-center justify-between">
+                            <span className="text-sm capitalize" style={{ color: theme.colors.textSecondary }}>
+                              {test.replace(/_/g, ' ')}:
+                            </span>
+                            <span className="text-sm px-2 py-1 rounded" style={{ 
+                              backgroundColor: passed ? theme.colors.primary + '20' : '#ef444420',
+                              color: passed ? theme.colors.primary : '#ef4444'
+                            }}>
+                              {passed ? '✓ Passed' : '✗ Failed'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Pattern Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                <div className="bg-slate-900/50 rounded-lg p-4">
-                  <div className="text-slate-400 text-sm">Total Stitches</div>
-                  <div className="text-2xl font-semibold text-primary-emerald">
-                    {pattern.stitches.reduce((a, b) => a + b, 0)}
+              <div className="space-y-4">
+                <button className="w-full py-3 px-4 rounded-lg font-medium transition-colors duration-200 hover:opacity-90"
+                  style={{ backgroundColor: theme.colors.primary, color: theme.colors.text }}>
+                  Generate Pattern
+                </button>
+                <button className="w-full py-3 px-4 rounded-lg font-medium transition-colors duration-200 hover:opacity-90"
+                  style={{ backgroundColor: theme.colors.accent, color: theme.colors.background }}>
+                  Export Visualization
+                </button>
+              </div>
+            </div>
+
+            <div className="lg:col-span-2">
+              <div className="rounded-2xl p-6 border h-full" style={{ backgroundColor: theme.colors.card + '80', borderColor: theme.colors.border }}>
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold" style={{ color: theme.colors.primary }}>Stitch Graph Visualization</h3>
+                  <div className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                    {nodes.length} nodes • K = {curvature.toFixed(2)} • {selectedNodeId !== null ? `Node #${selectedNodeId} selected` : 'Click a node'}
                   </div>
                 </div>
-                <div className="bg-slate-900/50 rounded-lg p-4">
-                  <div className="text-slate-400 text-sm">Pattern Rows</div>
-                  <div className="text-2xl font-semibold text-accent-gold">{pattern.rows}</div>
+
+                <div className="relative">
+                  <canvas
+                    ref={canvasRef}
+                    width={800}
+                    height={600}
+                    onClick={handleCanvasClick}
+                    className="w-full h-auto max-h-[600px] rounded-xl border-2 cursor-pointer transition-all hover:border-opacity-100"
+                    style={{ borderColor: theme.colors.border, backgroundColor: theme.colors.background }}
+                  />
+                  
+                  <div className="absolute bottom-4 left-4 backdrop-blur-sm rounded-lg p-3 max-w-xs" style={{ 
+                    backgroundColor: theme.colors.card + 'CC',
+                    border: `1px solid ${theme.colors.border}`,
+                    color: theme.colors.text
+                  }}>
+                    <div className="text-sm">
+                      <div className="flex items-center mb-2">
+                        <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: theme.colors.accent }}></div>
+                        <span>Hyperbolic Nodes (K {'<'} 0)</span>
+                      </div>
+                      <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                        Each node represents a stitch. Negative curvature creates expanding patterns suitable for ruffles and corals.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-slate-900/50 rounded-lg p-4">
-                  <div className="text-slate-400 text-sm">Curvature Type</div>
-                  <div className="text-2xl font-semibold capitalize">{pattern.type}</div>
-                </div>
-                <div className="bg-slate-900/50 rounded-lg p-4">
-                  <div className="text-slate-400 text-sm">Density</div>
-                  <div className="text-2xl font-semibold">
-                    {calculatePatternDensity(pattern).toFixed(2)}
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                  <div className="rounded-lg p-4" style={{ backgroundColor: theme.colors.background }}>
+                    <div className="text-sm" style={{ color: theme.colors.textSecondary }}>Total Stitches</div>
+                    <div className="text-2xl font-semibold" style={{ color: theme.colors.primary }}>
+                      {pattern.stitches.reduce((a, b) => a + b, 0)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg p-4" style={{ backgroundColor: theme.colors.background }}>
+                    <div className="text-sm" style={{ color: theme.colors.textSecondary }}>Pattern Rows</div>
+                    <div className="text-2xl font-semibold" style={{ color: theme.colors.accent }}>{pattern.rows}</div>
+                  </div>
+                  <div className="rounded-lg p-4" style={{ backgroundColor: theme.colors.background }}>
+                    <div className="text-sm" style={{ color: theme.colors.textSecondary }}>Curvature Type</div>
+                    <div className="text-2xl font-semibold capitalize">{pattern.type}</div>
+                  </div>
+                  <div className="rounded-lg p-4" style={{ backgroundColor: theme.colors.background }}>
+                    <div className="text-sm" style={{ color: theme.colors.textSecondary }}>Density</div>
+                    <div className="text-2xl font-semibold">
+                      {(() => {
+                        const totalStitches = pattern.stitches.reduce((sum: number, count: number) => sum + count, 0)
+                        const maxPossible = pattern.rows * Math.max(...pattern.stitches)
+                        return (totalStitches / maxPossible).toFixed(2)
+                      })()}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Mobile Responsive Note */}
-        <div className="mt-8 text-center text-slate-500 text-sm">
-          <p>Fully responsive design • Optimized for mobile viewing • Ready for Vercel deployment</p>
+          <div className="mt-8 text-center text-sm" style={{ color: theme.colors.textSecondary }}>
+            <p>Fully responsive design • Optimized for mobile viewing • Ready for Vercel deployment</p>
+          </div>
         </div>
       </div>
-    </div>
-  )
-}
 
-// Helper function to calculate pattern density
-function calculatePatternDensity(pattern: any): number {
-  const totalStitches = pattern.stitches.reduce((sum: number, count: number) => sum + count, 0)
-  const maxPossible = pattern.rows * Math.max(...pattern.stitches)
-  return totalStitches / maxPossible
+      <CouncilSidebar
+        isOpen={isCouncilOpen}
+        onClose={() => setIsCouncilOpen(false)}
+        selectedNodeId={selectedNodeId}
+      />
+    </>
+  )
 }
 
 export default PatternViewer

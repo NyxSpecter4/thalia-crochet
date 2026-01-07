@@ -1,5 +1,10 @@
 @import "tailwindcss";
+/* Modern Era Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
+/* Ancient Era Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+/* Future Era Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
 
 @theme {
   --color-background-slate: #0f172a;
@@ -13,10 +18,36 @@
     margin: 0;
     min-height: 100vh;
     background-color: #0f172a;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Era-specific body classes */
+  .era-modern {
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .era-ancient {
+    font-family: 'Crimson Text', serif;
+  }
+  
+  .era-future {
+    font-family: 'Rajdhani', sans-serif;
   }
 
   h1, h2, h3, h4 {
     @apply font-serif tracking-tight;
+  }
+
+  .era-modern h1, .era-modern h2, .era-modern h3, .era-modern h4 {
+    font-family: 'Playfair Display', serif;
+  }
+  
+  .era-ancient h1, .era-ancient h2, .era-ancient h3, .era-ancient h4 {
+    font-family: 'Cormorant Garamond', serif;
+  }
+  
+  .era-future h1, .era-future h2, .era-future h3, .era-future h4 {
+    font-family: 'Orbitron', sans-serif;
   }
 
   h1 {
@@ -73,5 +104,10 @@
     width: 1rem;
     border-radius: 9999px;
     background-color: #fbbf24;
+  }
+
+  /* Era transition animations */
+  .era-transition {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }

@@ -1,8 +1,13 @@
+import { ThemeProvider } from './context/ThemeContext'
 import PatternViewer from './components/PatternViewer'
 import './App.css'
 
 function App() {
-  return <PatternViewer />
+  return (
+    <ThemeProvider>
+      <PatternViewer />
+    </ThemeProvider>
+  )
 }
 
 export default App
