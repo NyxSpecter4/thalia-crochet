@@ -1,22 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import CouncilSidebar from '../components/CouncilSidebar';
-import { supabase } from '../lib/supabase';
-
-interface CulturalResearch {
-  id: string;
-  era: 'modern' | 'ancient' | 'future';
-  symbolism: string;
-  math_logic: string;
-  pattern_name: string;
-  stitch_count: number;
-}
+import { fetchResearchByCategory, extractMeaning, extractTechnicalRecipe, type CulturalResearchItem } from '../services/researchService';
 
 const ComparisonPage: React.FC = () => {
   const { theme: currentTheme, setEra } = useTheme();
   const [selectedNodeId] = useState<number | null>(null);
   const [isCouncilOpen, setIsCouncilOpen] = useState<boolean>(false);
-  const [culturalData, setCulturalData] = useState<CulturalResearch[]>([]);
+  const [culturalData, setCulturalData] = useState<CulturalResearchItem[]>([]);
   const [votes, setVotes] = useState<{ [era: string]: number }>(() => {
     // Load votes from localStorage on initial render
     const saved = localStorage.getItem('thalia_era_votes');
@@ -34,21 +25,18 @@ const ComparisonPage: React.FC = () => {
     };
   });
 
-  // Fetch cultural research data from Supabase
+  // Fetch cultural research data by category
   useEffect(() => {
-    const fetchCulturalData = async () => {
-      const { data, error } = await supabase
-        .from('cultural_research')
-        .select('*')
-        .order('era');
-      
-      if (error) {
-        console.error('Error fetching cultural research:', error);
-      } else {
-        setCulturalData(data as CulturalResearch[]);
-      }
+    const fetchData = async () => {
+      const [ancient, modern, future] = await Promise.all([
+        fetchResearchByCategory('ancient'),
+        fetchResearchByCategory('modern'),
+        fetchResearchByCategory('future'),
+      ]);
+      // Combine all items
+      setCulturalData([...ancient, ...modern, ...future]);
     };
-    fetchCulturalData();
+    fetchData();
   }, []);
 
   const handleVote = (era: 'ancient' | 'modern' | 'future') => {
@@ -65,13 +53,51 @@ const ComparisonPage: React.FC = () => {
     alert(`Voted for ${era} era! Thank you for your feedback.`);
   };
 
-  const getDataForEra = (era: 'ancient' | 'modern' | 'future') => {
-    return culturalData.find(d => d.era === era) || {
-      symbolism: 'Symbolism data loading...',
-      math_logic: 'Mathematical logic loading...',
-      pattern_name: 'Shell Stitch',
-      stitch_count: 42,
+  interface CardData {
+    title: string;
+    description: string;
+    symbolism: string;
+    technicalRecipe: string;
+    stitchCount: number;
+  }
+
+  const getDataForEra = (era: 'ancient' | 'modern' | 'future'): CardData => {
+    const items = culturalData.filter(d => d.category === era);
+    if (items.length > 0) {
+      const item = items[0];
+      return {
+        title: item.title,
+        description: item.description || '',
+        symbolism: extractMeaning(item),
+        technicalRecipe: extractTechnicalRecipe(item),
+        stitchCount: item.content?.stitch_count || 42,
+      };
+    }
+    // Fallback data matching the specific patterns
+    const fallbacks: Record<'ancient' | 'modern' | 'future', CardData> = {
+      ancient: {
+        title: 'Pepper Spice Oya',
+        description: 'Oya lace with pepper‑spice symbolism representing Discord.',
+        symbolism: 'Pepper Spice Oya: Discord, protection, and cultural resistance.',
+        technicalRecipe: 'Z‑twist, 2:1 increase ratio, 5‑row repeat.',
+        stitchCount: 56,
+      },
+      modern: {
+        title: 'Brain Coral',
+        description: 'Hyperbolic growth pattern with 1:3 stitch ratio.',
+        symbolism: 'Brain Coral: Computational geometry, fractal expansion.',
+        technicalRecipe: '1:3 increase ratio, curvature K = -0.7, 8‑row repeat.',
+        stitchCount: 42,
+      },
+      future: {
+        title: 'Helix Trace',
+        description: 'Bioluminescent smart‑fabric with biometric sensing.',
+        symbolism: 'Helix Trace: Adaptive materials, robotic path‑lines.',
+        technicalRecipe: 'Dynamic stitch adjustment, LED‑thread integration.',
+        stitchCount: 64,
+      },
     };
+    return fallbacks[era];
   };
 
   const columns = [
@@ -163,9 +189,9 @@ const ComparisonPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 p-4 backdrop-blur-sm" style={{ backgroundColor: col.bgColor + 'CC' }}>
-                      <div className="text-sm md:text-base font-semibold">{data.pattern_name}</div>
+                      <div className="text-sm md:text-base font-semibold">{data.title}</div>
                       <div className="text-xs md:text-sm" style={{ color: col.accentColor }}>
-                        {data.stitch_count} stitches • Curvature K = {col.era === 'ancient' ? '-0.7' : col.era === 'modern' ? '0.0' : '+0.5'}
+                        {data.stitchCount} stitches • Curvature K = {col.era === 'ancient' ? '-0.7' : col.era === 'modern' ? '0.0' : '+0.5'}
                       </div>
                     </div>
                   </div>
@@ -177,12 +203,12 @@ const ComparisonPage: React.FC = () => {
                       <p className="text-sm md:text-base">{data.symbolism}</p>
                     </div>
                     <div>
-                      <h5 className="font-bold text-lg mb-2" style={{ color: col.accentColor }}>Mathematical Logic</h5>
-                      <p className="text-sm md:text-base">{data.math_logic}</p>
+                      <h5 className="font-bold text-lg mb-2" style={{ color: col.accentColor }}>Technical Recipe</h5>
+                      <p className="text-sm md:text-base">{data.technicalRecipe}</p>
                     </div>
                     <div>
                       <h5 className="font-bold text-lg mb-2" style={{ color: col.accentColor }}>Description</h5>
-                      <p className="text-sm md:text-base">{col.description}</p>
+                      <p className="text-sm md:text-base">{data.description}</p>
                     </div>
                   </div>
 

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { councilMembers, getInsightsForNode, type CouncilMember } from '../data/council';
 import { useTheme } from '../context/ThemeContext';
+import { fetchExpertQuotesForNode, extractMeaning, extractTechnicalRecipe } from '../services/researchService';
 
 interface CouncilSidebarProps {
   isOpen: boolean;
@@ -11,8 +12,19 @@ interface CouncilSidebarProps {
 const CouncilSidebar: React.FC<CouncilSidebarProps> = ({ isOpen, onClose, selectedNodeId }) => {
   const { theme } = useTheme();
   const [selectedMember, setSelectedMember] = useState<CouncilMember | null>(null);
+  const [expertQuotes, setExpertQuotes] = useState<any[]>([]);
   
   const insights = selectedNodeId ? getInsightsForNode(selectedNodeId) : [];
+  
+  useEffect(() => {
+    if (selectedNodeId !== null) {
+      fetchExpertQuotesForNode(selectedNodeId).then(quotes => {
+        setExpertQuotes(quotes);
+      });
+    } else {
+      setExpertQuotes([]);
+    }
+  }, [selectedNodeId]);
   
   const handleMemberClick = (member: CouncilMember) => {
     setSelectedMember(member);
@@ -238,16 +250,16 @@ const CouncilSidebar: React.FC<CouncilSidebarProps> = ({ isOpen, onClose, select
                   {insights.map(insight => {
                     const member = councilMembers.find(m => m.id === insight.councilMemberId);
                     return (
-                      <div 
+                      <div
                         key={insight.id}
                         className="p-3 rounded-lg"
-                        style={{ 
+                        style={{
                           backgroundColor: theme.colors.background,
                           border: `1px solid ${theme.colors.border}`
                         }}
                       >
                         <div className="flex items-center mb-2">
-                          <div 
+                          <div
                             className="w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3"
                             style={{ backgroundColor: member?.color + '20', color: member?.color }}
                           >
@@ -264,6 +276,45 @@ const CouncilSidebar: React.FC<CouncilSidebarProps> = ({ isOpen, onClose, select
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* Expert Quotes from Database */}
+            {selectedNodeId && expertQuotes.length > 0 && (
+              <div className="mt-8 pt-6 border-t" style={{ borderColor: theme.colors.border }}>
+                <h4 className="font-semibold mb-3" style={{ color: theme.colors.accent }}>
+                  Expert Quotes from Research
+                </h4>
+                <div className="space-y-3">
+                  {expertQuotes.map((quote, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-lg"
+                      style={{
+                        backgroundColor: theme.colors.background,
+                        border: `1px solid ${theme.colors.border}`
+                      }}
+                    >
+                      <div className="flex items-center mb-2">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3" style={{ backgroundColor: theme.colors.primary + '20', color: theme.colors.primary }}>
+                          {quote.author?.charAt(0) || 'E'}
+                        </div>
+                        <div>
+                          <div className="font-medium text-sm">{quote.title}</div>
+                          <div className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                            {quote.category} • {quote.author || 'Unknown'}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-sm italic">"{extractMeaning(quote)}"</p>
+                      {quote.content?.technical_recipe && (
+                        <div className="mt-2 text-xs" style={{ color: theme.colors.textSecondary }}>
+                          <strong>Technical Recipe:</strong> {extractTechnicalRecipe(quote)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
