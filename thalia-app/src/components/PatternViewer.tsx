@@ -173,12 +173,18 @@ const PatternViewer: React.FC = () => {
     ctx.stroke()
     
     ctx.fillStyle = theme.colors.textSecondary
-    ctx.font = `${Math.max(10, 12 * scale)}px ${theme.typography.monoFont}`
+    // Smaller font on mobile (canvas width < 640)
+    const isMobileCanvas = canvas.width < 640
+    const labelFontSize = isMobileCanvas ? Math.max(8, 10 * scale) : Math.max(10, 12 * scale)
+    ctx.font = `${labelFontSize}px ${theme.typography.monoFont}`
     ctx.textAlign = 'center'
-    ctx.fillText('K < 0', centerX - 25 * scale, centerY + 45 * scale)
-    ctx.fillText('Hyperbolic', centerX - 25 * scale, centerY + 60 * scale)
-    ctx.fillText('K > 0', centerX + 25 * scale, centerY + 45 * scale)
-    ctx.fillText('Spherical', centerX + 25 * scale, centerY + 60 * scale)
+    // Adjust vertical spacing for mobile
+    const verticalOffset = isMobileCanvas ? 35 * scale : 45 * scale
+    const lineSpacing = isMobileCanvas ? 12 * scale : 15 * scale
+    ctx.fillText('K < 0', centerX - 25 * scale, centerY + verticalOffset)
+    ctx.fillText('Hyperbolic', centerX - 25 * scale, centerY + verticalOffset + lineSpacing)
+    ctx.fillText('K > 0', centerX + 25 * scale, centerY + verticalOffset)
+    ctx.fillText('Spherical', centerX + 25 * scale, centerY + verticalOffset + lineSpacing)
   }, [nodes, curvature, selectedNodeId, theme, canvasDimensions])
 
   const handleCurvatureChange = (value: number) => {
@@ -390,13 +396,13 @@ const PatternViewer: React.FC = () => {
                 </div>
 
                 {/* Mobile‑only slider and buttons */}
-                <div className="block md:hidden mb-6">
-                  <div className="rounded-lg p-4 border" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
-                    <h4 className="font-medium mb-3" style={{ color: theme.colors.accent }}>Curvature Slider</h4>
-                    <div className="space-y-3">
+                <div className="block md:hidden mb-4">
+                  <div className="rounded-lg p-3 border" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
+                    <h4 className="font-medium mb-2" style={{ color: theme.colors.accent }}>Curvature Slider</h4>
+                    <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <label style={{ color: theme.colors.text }}>Curvature (K): {curvature.toFixed(2)}</label>
-                        <span className="text-sm px-3 py-1 rounded-full" style={{
+                        <label className="text-sm" style={{ color: theme.colors.text }}>Curvature (K): {curvature.toFixed(2)}</label>
+                        <span className="text-xs px-2 py-1 rounded-full" style={{
                           backgroundColor: curvature < 0 ? theme.colors.accent + '20' :
                                         curvature > 0 ? theme.colors.primary + '20' :
                                         theme.colors.border,
@@ -407,7 +413,7 @@ const PatternViewer: React.FC = () => {
                           {curvature < 0 ? 'Hyperbolic' : curvature > 0 ? 'Spherical' : 'Euclidean'}
                         </span>
                       </div>
-                      <div className="relative py-2">
+                      <div className="relative py-1">
                         <input
                           type="range"
                           min="-1"
@@ -415,7 +421,7 @@ const PatternViewer: React.FC = () => {
                           step="0.01"
                           value={curvature}
                           onChange={(e) => handleCurvatureChange(parseFloat(e.target.value))}
-                          className="w-full h-4 rounded-lg appearance-none cursor-pointer slider-thumb touch-manipulation"
+                          className="w-full h-3 rounded-lg appearance-none cursor-pointer slider-thumb touch-manipulation"
                           style={{
                             backgroundColor: theme.colors.border,
                             accentColor: theme.colors.primary,
@@ -427,7 +433,7 @@ const PatternViewer: React.FC = () => {
                             })
                           }}
                         />
-                        <div className="absolute -top-1 left-0 right-0 h-8 pointer-events-none" />
+                        <div className="absolute -top-1 left-0 right-0 h-6 pointer-events-none" />
                       </div>
                       <div className="flex justify-between text-xs" style={{ color: theme.colors.textSecondary }}>
                         <span>-1.0</span>
@@ -491,7 +497,7 @@ const PatternViewer: React.FC = () => {
                   )}
                 </div>
 
-                <div className="relative" ref={containerRef}>
+                <div className="relative min-h-[300px]" ref={containerRef}>
                   <canvas
                     ref={canvasRef}
                     width={canvasDimensions.width}
@@ -501,17 +507,18 @@ const PatternViewer: React.FC = () => {
                     style={{ borderColor: theme.colors.border, backgroundColor: theme.colors.background }}
                   />
                   
-                  <div className="absolute bottom-2 left-2 md:bottom-4 md:left-4 backdrop-blur-sm rounded-lg p-2 md:p-3 max-w-[90%] md:max-w-xs" style={{
+                  {/* Desktop‑only legend (absolute overlay) */}
+                  <div className="hidden md:block absolute bottom-4 left-4 backdrop-blur-sm rounded-lg p-3 max-w-xs" style={{
                     backgroundColor: theme.colors.card + 'CC',
                     border: `1px solid ${theme.colors.border}`,
                     color: theme.colors.text
                   }}>
-                    <div className="text-xs md:text-sm">
-                      <div className="flex items-center mb-1 md:mb-2">
-                        <div className="w-2 h-2 md:w-3 md:h-3 rounded-full mr-1 md:mr-2" style={{ backgroundColor: theme.colors.accent }}></div>
-                        <span className="text-xs md:text-sm">Hyperbolic Nodes (K {'<'} 0)</span>
+                    <div className="text-sm">
+                      <div className="flex items-center mb-2">
+                        <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: theme.colors.accent }}></div>
+                        <span>Hyperbolic Nodes (K {'<'} 0)</span>
                       </div>
-                      <p className="text-[10px] md:text-xs" style={{ color: theme.colors.textSecondary }}>
+                      <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
                         Each node represents a stitch. Negative curvature creates expanding patterns suitable for ruffles and corals.
                       </p>
                     </div>
@@ -535,6 +542,19 @@ const PatternViewer: React.FC = () => {
                     >
                       Export Visualization
                     </button>
+                  </div>
+                </div>
+
+                {/* Mobile‑only legend (below canvas) */}
+                <div className="block md:hidden mt-6">
+                  <div className="rounded-lg p-4 border" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
+                    <div className="flex items-center mb-2">
+                      <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: theme.colors.accent }}></div>
+                      <span className="text-sm" style={{ color: theme.colors.text }}>Hyperbolic Nodes (K {'<'} 0)</span>
+                    </div>
+                    <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                      Each node represents a stitch. Negative curvature creates expanding patterns suitable for ruffles and corals.
+                    </p>
                   </div>
                 </div>
 
