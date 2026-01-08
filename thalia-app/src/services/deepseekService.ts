@@ -113,6 +113,18 @@ export const generateAIFeedback = async (
 };
 
 /**
+ * Get mentor-specific pro‑tips for the Practice Dojo
+ */
+export const getMentorProTips = (expertId: string): string => {
+  const tips: Record<string, string> = {
+    'e1': 'Maria’s Pro‑Tip: Use the 20‑wrap Clones Knot for seamless joins, and maintain a 45‑degree hook angle for optimal tension.',
+    'e2': 'David’s Pro‑Tip: The Invisible Decrease mathematical proof: (sc2tog) = (2,1) stitch mapping reduces bulk while preserving stitch count.',
+    'e3': 'Lin’s Pro‑Tip: 4th‑century Persian Dyes: Achieve historical colorfastness by pre‑mordanting with alum and tannin before cochineal.',
+  };
+  return tips[expertId] || 'Pro‑Tip: Practice with intention, not just repetition.';
+};
+
+/**
  * Match beginner with appropriate expert based on question analysis
  */
 export const matchExpert = async (
@@ -147,5 +159,6 @@ export const matchExpert = async (
 export default {
   callDeepSeekAPI,
   generateAIFeedback,
-  matchExpert
+  matchExpert,
+  getMentorProTips
 };

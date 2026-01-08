@@ -3,15 +3,17 @@ import { councilMembers, getInsightsForNode, type CouncilMember } from '../data/
 import { useTheme } from '../context/ThemeContext';
 import { fetchExpertQuotesForNode, extractMeaning, extractTechnicalRecipe, fetchEraSpecificResearch } from '../services/researchService';
 import { type StitchNode } from '../lib/geometry';
+import SilkFilter from './effects/SilkFilter';
 
 interface CouncilSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   selectedNodeId: number | null;
   nodes?: StitchNode[];
+  onExpertSelect?: (expertId: string) => void;
 }
 
-const CouncilSidebar: React.FC<CouncilSidebarProps> = ({ isOpen, onClose, selectedNodeId, nodes = [] }) => {
+const CouncilSidebar: React.FC<CouncilSidebarProps> = ({ isOpen, onClose, selectedNodeId, nodes = [], onExpertSelect }) => {
   const { theme, era } = useTheme();
   const [selectedMember, setSelectedMember] = useState<CouncilMember | null>(null);
   const [expertQuotes, setExpertQuotes] = useState<any[]>([]);
@@ -38,6 +40,9 @@ const CouncilSidebar: React.FC<CouncilSidebarProps> = ({ isOpen, onClose, select
   
   const handleMemberClick = (member: CouncilMember) => {
     setSelectedMember(member);
+    if (onExpertSelect) {
+      onExpertSelect(member.id);
+    }
   };
   
   const handleBackToCouncil = () => {
@@ -52,9 +57,12 @@ const CouncilSidebar: React.FC<CouncilSidebarProps> = ({ isOpen, onClose, select
       style={{
         backgroundColor: theme.colors.card,
         borderColor: theme.colors.border,
-        color: theme.colors.text
+        color: theme.colors.text,
+        filter: era === 'ancient' ? 'url(#silkTexture)' : 'none',
       }}
     >
+      {/* Silk Filter for Ancient UI */}
+      {era === 'ancient' && <SilkFilter />}
       {/* Header */}
       <div className="p-6 border-b" style={{ borderColor: theme.colors.border }}>
         <div className="flex justify-between items-center">

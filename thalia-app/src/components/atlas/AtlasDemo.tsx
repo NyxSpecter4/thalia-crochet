@@ -1,9 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ThaliaGlobe from './ThaliaGlobe'
 import VortexTransition from './VortexTransition'
 import CouncilTooltip from './CouncilTooltip'
 import MuseumMode from './MuseumMode'
 import { useTheme } from '../../context/ThemeContext'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const AtlasDemo: React.FC = () => {
   const { theme, setEra } = useTheme()
@@ -15,6 +17,18 @@ const AtlasDemo: React.FC = () => {
   const [_isTraveling, setIsTraveling] = useState(false)
   const [travelText, setTravelText] = useState('')
   const [showMuseumMode, setShowMuseumMode] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [showEraSheet, setShowEraSheet] = useState(false)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const handleMarkerClick = (marker: any) => {
     // Calculate position for tooltip (center of screen for demo)
@@ -45,6 +59,20 @@ const AtlasDemo: React.FC = () => {
       setShowMuseumMode(true)
       console.log(`Entered ${marker.name} workbench at era: ${marker.era}`)
     }, 1800)
+  }
+
+  const handleArcDive = (arc: any) => {
+    // Navigate to Master Gallery with maritime context and focus on Venetian‑to‑Irish history
+    navigate('/master-gallery', {
+      state: {
+        maritime: true,
+        arcId: arc.id,
+        description: arc.description,
+        color: arc.color,
+        focus: 'venetian-irish',
+        title: 'Maritime Silk Road: Venetian‑to‑Irish Textile Exchange'
+      }
+    })
   }
   
   const getHistoricalPeriod = (marker: any) => {
@@ -107,7 +135,8 @@ const AtlasDemo: React.FC = () => {
               </p>
             </div>
             
-            <div className="flex flex-wrap gap-3">
+            {/* Desktop Era Buttons */}
+            <div className="hidden md:flex flex-wrap gap-3">
               <button
                 onClick={() => handleEraChange('ancient')}
                 className="px-4 py-2 rounded-lg flex items-center gap-2 transition-all hover:scale-105"
@@ -160,6 +189,22 @@ const AtlasDemo: React.FC = () => {
                 <span>All Eras</span>
               </button>
             </div>
+
+            {/* Mobile Era Toggle Button */}
+            {isMobile && (
+              <button
+                onClick={() => setShowEraSheet(true)}
+                className="md:hidden px-4 py-2 rounded-lg flex items-center gap-2"
+                style={{
+                  backgroundColor: theme.colors.card,
+                  color: theme.colors.text,
+                  border: `1px solid ${theme.colors.border}`
+                }}
+              >
+                <span>⏳</span>
+                <span>Select Era</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -167,151 +212,166 @@ const AtlasDemo: React.FC = () => {
       {/* Main Content */}
       <div className="pt-32 h-full">
         <div className="h-full max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-12rem)]">
+          <div className={`grid grid-cols-1 ${isMobile ? '' : 'lg:grid-cols-3'} gap-6 ${isMobile ? 'h-[calc(100vh-10rem)]' : 'h-[calc(100vh-12rem)]'}`}>
             {/* Globe Container */}
-            <div className="lg:col-span-2 rounded-2xl overflow-hidden border" style={{
+            <div className={`${isMobile ? 'h-[60vh]' : 'lg:col-span-2'} rounded-2xl overflow-hidden border`} style={{
               borderColor: theme.colors.border,
               backgroundColor: theme.colors.card
             }}>
               <ThaliaGlobe
                 era={currentEra}
                 onMarkerClick={handleMarkerClick}
+                onArcDive={handleArcDive}
                 activeMarkerId={selectedMarker?.id}
                 showTradeRoutes={true}
               />
             </div>
 
-            {/* Side Panel */}
-            <div className="rounded-2xl border p-6 overflow-y-auto" style={{
-              borderColor: theme.colors.border,
-              backgroundColor: theme.colors.card
-            }}>
-              <h2 className="text-xl font-bold mb-4" style={{ color: theme.colors.text }}>
-                Cultural Atlas Guide
-              </h2>
-              
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-                  <h3 className="font-semibold mb-2" style={{ color: theme.colors.accent }}>How to Navigate</h3>
-                  <ul className="text-sm space-y-2" style={{ color: theme.colors.textSecondary }}>
-                    <li className="flex items-start">
-                      <div className="w-2 h-2 rounded-full mt-1.5 mr-3" style={{ backgroundColor: theme.colors.primary }} />
-                      <span>Click on cultural markers to see expert insights</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="w-2 h-2 rounded-full mt-1.5 mr-3" style={{ backgroundColor: theme.colors.primary }} />
-                      <span>Use era buttons to filter by historical period</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="w-2 h-2 rounded-full mt-1.5 mr-3" style={{ backgroundColor: theme.colors.primary }} />
-                      <span>Hover over markers for quick previews</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="w-2 h-2 rounded-full mt-1.5 mr-3" style={{ backgroundColor: theme.colors.primary }} />
-                      <span>Click "Generate Pattern" to create crochet instructions</span>
-                    </li>
-                  </ul>
-                </div>
+            {/* Side Panel - Hidden on Mobile */}
+            {!isMobile && (
+              <div className="rounded-2xl border p-6 overflow-y-auto" style={{
+                borderColor: theme.colors.border,
+                backgroundColor: theme.colors.card
+              }}>
+                <h2 className="text-xl font-bold mb-4" style={{ color: theme.colors.text }}>
+                  Cultural Atlas Guide
+                </h2>
+                
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
+                    <h3 className="font-semibold mb-2" style={{ color: theme.colors.accent }}>How to Navigate</h3>
+                    <ul className="text-sm space-y-2" style={{ color: theme.colors.textSecondary }}>
+                      <li className="flex items-start">
+                        <div className="w-2 h-2 rounded-full mt-1.5 mr-3" style={{ backgroundColor: theme.colors.primary }} />
+                        <span>Click on cultural markers to see expert insights</span>
+                      </li>
+                      <li className="flex items-start">
+                        <div className="w-2 h-2 rounded-full mt-1.5 mr-3" style={{ backgroundColor: theme.colors.primary }} />
+                        <span>Use era buttons to filter by historical period</span>
+                      </li>
+                      <li className="flex items-start">
+                        <div className="w-2 h-2 rounded-full mt-1.5 mr-3" style={{ backgroundColor: theme.colors.primary }} />
+                        <span>Hover over markers for quick previews</span>
+                      </li>
+                      <li className="flex items-start">
+                        <div className="w-2 h-2 rounded-full mt-1.5 mr-3" style={{ backgroundColor: theme.colors.primary }} />
+                        <span>Click "Generate Pattern" to create crochet instructions</span>
+                      </li>
+                    </ul>
+                  </div>
 
-                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-                  <h3 className="font-semibold mb-2" style={{ color: theme.colors.accent }}>Era Overview</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: '#D97706' }} />
-                      <div>
-                        <div className="text-sm font-medium" style={{ color: theme.colors.text }}>Ancient</div>
-                        <div className="text-xs" style={{ color: theme.colors.textSecondary }}>Traditional craft wisdom</div>
+                  <div className="p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
+                    <h3 className="font-semibold mb-2" style={{ color: theme.colors.accent }}>Era Overview</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: '#D97706' }} />
+                        <div>
+                          <div className="text-sm font-medium" style={{ color: theme.colors.text }}>Ancient</div>
+                          <div className="text-xs" style={{ color: theme.colors.textSecondary }}>Traditional craft wisdom</div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: '#059669' }} />
-                      <div>
-                        <div className="text-sm font-medium" style={{ color: theme.colors.text }}>Modern</div>
-                        <div className="text-xs" style={{ color: theme.colors.textSecondary }}>Contemporary techniques</div>
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: '#059669' }} />
+                        <div>
+                          <div className="text-sm font-medium" style={{ color: theme.colors.text }}>Modern</div>
+                          <div className="text-xs" style={{ color: theme.colors.textSecondary }}>Contemporary techniques</div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: '#7C3AED' }} />
-                      <div>
-                        <div className="text-sm font-medium" style={{ color: theme.colors.text }}>Future</div>
-                        <div className="text-xs" style={{ color: theme.colors.textSecondary }}>Algorithmic frontiers</div>
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: '#7C3AED' }} />
+                        <div>
+                          <div className="text-sm font-medium" style={{ color: theme.colors.text }}>Future</div>
+                          <div className="text-xs" style={{ color: theme.colors.textSecondary }}>Algorithmic frontiers</div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-                  <h3 className="font-semibold mb-2" style={{ color: theme.colors.accent }}>Selected Marker</h3>
-                  {selectedMarker ? (
-                    <div>
-                      <div className="flex items-center mb-3">
-                        <div 
-                          className="w-4 h-4 rounded-full mr-3"
-                          style={{ backgroundColor: selectedMarker.color }}
-                        />
-                        <div>
-                          <div className="font-medium" style={{ color: theme.colors.text }}>{selectedMarker.name}</div>
-                          <div className="text-xs" style={{ color: theme.colors.textSecondary }}>{selectedMarker.stitchType}</div>
+                  <div className="p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
+                    <h3 className="font-semibold mb-2" style={{ color: theme.colors.accent }}>Selected Marker</h3>
+                    {selectedMarker ? (
+                      <div>
+                        <div className="flex items-center mb-3">
+                          <div
+                            className="w-4 h-4 rounded-full mr-3"
+                            style={{ backgroundColor: selectedMarker.color }}
+                          />
+                          <div>
+                            <div className="font-medium" style={{ color: theme.colors.text }}>{selectedMarker.name}</div>
+                            <div className="text-xs" style={{ color: theme.colors.textSecondary }}>{selectedMarker.stitchType}</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const x = window.innerWidth / 2
+                            const y = window.innerHeight / 3
+                            setTooltipPosition({ x, y })
+                          }}
+                          className="w-full py-2 text-sm rounded-lg font-medium"
+                          style={{
+                            backgroundColor: theme.colors.primary,
+                            color: theme.colors.background
+                          }}
+                        >
+                          Show Council Tooltip
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <div className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                          Click on a marker to select it
                         </div>
                       </div>
+                    )}
+                  </div>
+
+                  <div className="p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
+                    <h3 className="font-semibold mb-2" style={{ color: theme.colors.accent }}>Quick Actions</h3>
+                    <div className="space-y-2">
                       <button
-                        onClick={() => {
-                          const x = window.innerWidth / 2
-                          const y = window.innerHeight / 3
-                          setTooltipPosition({ x, y })
-                        }}
-                        className="w-full py-2 text-sm rounded-lg font-medium"
+                        onClick={() => setShowVortex(true)}
+                        className="w-full py-2.5 text-sm rounded-lg font-medium flex items-center justify-center gap-2"
                         style={{
-                          backgroundColor: theme.colors.primary,
-                          color: theme.colors.background
+                          backgroundColor: theme.colors.card,
+                          color: theme.colors.text,
+                          border: `1px solid ${theme.colors.border}`
                         }}
                       >
-                        Show Council Tooltip
+                        <span>🌀</span>
+                        <span>Test Vortex Transition</span>
+                      </button>
+                      <button
+                        onClick={() => navigate('/dojo')}
+                        className="w-full py-2.5 text-sm rounded-lg font-medium flex items-center justify-center gap-2"
+                        style={{
+                          backgroundColor: '#F59E0B',
+                          color: '#FFFFFF',
+                          border: '1px solid #D97706'
+                        }}
+                      >
+                        <span>🥋</span>
+                        <span>Enter Practice Dojo</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          // Reset view
+                          setCurrentEra('all')
+                          setSelectedMarker(null)
+                        }}
+                        className="w-full py-2.5 text-sm rounded-lg font-medium"
+                        style={{
+                          backgroundColor: theme.colors.card,
+                          color: theme.colors.text,
+                          border: `1px solid ${theme.colors.border}`
+                        }}
+                      >
+                        Reset View
                       </button>
                     </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <div className="text-sm" style={{ color: theme.colors.textSecondary }}>
-                        Click on a marker to select it
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-                  <h3 className="font-semibold mb-2" style={{ color: theme.colors.accent }}>Quick Actions</h3>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => setShowVortex(true)}
-                      className="w-full py-2.5 text-sm rounded-lg font-medium flex items-center justify-center gap-2"
-                      style={{
-                        backgroundColor: theme.colors.card,
-                        color: theme.colors.text,
-                        border: `1px solid ${theme.colors.border}`
-                      }}
-                    >
-                      <span>🌀</span>
-                      <span>Test Vortex Transition</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        // Reset view
-                        setCurrentEra('all')
-                        setSelectedMarker(null)
-                      }}
-                      className="w-full py-2.5 text-sm rounded-lg font-medium"
-                      style={{
-                        backgroundColor: theme.colors.card,
-                        color: theme.colors.text,
-                        border: `1px solid ${theme.colors.border}`
-                      }}
-                    >
-                      Reset View
-                    </button>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -339,6 +399,146 @@ const AtlasDemo: React.FC = () => {
         onClose={handleCloseMuseumMode}
       />
 
+      {/* Mobile Era Bottom Sheet */}
+      <AnimatePresence>
+        {showEraSheet && isMobile && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25 }}
+            className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl p-6"
+            style={{
+              backgroundColor: theme.colors.card,
+              borderTop: `2px solid ${theme.colors.border}`,
+              boxShadow: `0 -10px 30px ${theme.colors.border}40`,
+              maxHeight: '70vh'
+            }}
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold" style={{ color: theme.colors.text }}>
+                Select Era
+              </h3>
+              <button
+                onClick={() => setShowEraSheet(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center"
+                style={{
+                  backgroundColor: theme.colors.background,
+                  color: theme.colors.text,
+                  border: `1px solid ${theme.colors.border}`
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  handleEraChange('ancient')
+                  setShowEraSheet(false)
+                }}
+                className="w-full p-4 rounded-xl flex items-center justify-between transition-all active:scale-95"
+                style={{
+                  backgroundColor: currentEra === 'ancient' ? '#D97706' : theme.colors.background,
+                  color: currentEra === 'ancient' ? theme.colors.background : theme.colors.text,
+                  border: `1px solid ${theme.colors.border}`
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🏺</span>
+                  <div className="text-left">
+                    <div className="font-semibold">Ancient Era</div>
+                    <div className="text-xs" style={{ color: currentEra === 'ancient' ? theme.colors.background + 'CC' : theme.colors.textSecondary }}>
+                      Traditional craft wisdom
+                    </div>
+                  </div>
+                </div>
+                {currentEra === 'ancient' && <span className="text-lg">✓</span>}
+              </button>
+
+              <button
+                onClick={() => {
+                  handleEraChange('modern')
+                  setShowEraSheet(false)
+                }}
+                className="w-full p-4 rounded-xl flex items-center justify-between transition-all active:scale-95"
+                style={{
+                  backgroundColor: currentEra === 'modern' ? '#059669' : theme.colors.background,
+                  color: currentEra === 'modern' ? theme.colors.background : theme.colors.text,
+                  border: `1px solid ${theme.colors.border}`
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">⚙️</span>
+                  <div className="text-left">
+                    <div className="font-semibold">Modern Era</div>
+                    <div className="text-xs" style={{ color: currentEra === 'modern' ? theme.colors.background + 'CC' : theme.colors.textSecondary }}>
+                      Contemporary techniques
+                    </div>
+                  </div>
+                </div>
+                {currentEra === 'modern' && <span className="text-lg">✓</span>}
+              </button>
+
+              <button
+                onClick={() => {
+                  handleEraChange('future')
+                  setShowEraSheet(false)
+                }}
+                className="w-full p-4 rounded-xl flex items-center justify-between transition-all active:scale-95"
+                style={{
+                  backgroundColor: currentEra === 'future' ? '#7C3AED' : theme.colors.background,
+                  color: currentEra === 'future' ? theme.colors.background : theme.colors.text,
+                  border: `1px solid ${theme.colors.border}`
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🚀</span>
+                  <div className="text-left">
+                    <div className="font-semibold">Future Era</div>
+                    <div className="text-xs" style={{ color: currentEra === 'future' ? theme.colors.background + 'CC' : theme.colors.textSecondary }}>
+                      Algorithmic frontiers
+                    </div>
+                  </div>
+                </div>
+                {currentEra === 'future' && <span className="text-lg">✓</span>}
+              </button>
+
+              <button
+                onClick={() => {
+                  setCurrentEra('all')
+                  setShowEraSheet(false)
+                }}
+                className="w-full p-4 rounded-xl flex items-center justify-between transition-all active:scale-95"
+                style={{
+                  backgroundColor: currentEra === 'all' ? theme.colors.primary : theme.colors.background,
+                  color: currentEra === 'all' ? theme.colors.background : theme.colors.text,
+                  border: `1px solid ${theme.colors.border}`
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🌍</span>
+                  <div className="text-left">
+                    <div className="font-semibold">All Eras</div>
+                    <div className="text-xs" style={{ color: currentEra === 'all' ? theme.colors.background + 'CC' : theme.colors.textSecondary }}>
+                      View all cultural markers
+                    </div>
+                  </div>
+                </div>
+                {currentEra === 'all' && <span className="text-lg">✓</span>}
+              </button>
+            </div>
+
+            <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.colors.border }}>
+              <p className="text-xs text-center" style={{ color: theme.colors.textSecondary }}>
+                Swipe down or tap outside to close
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Instructions */}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
         <div className="text-xs px-4 py-2 rounded-full" style={{
@@ -347,7 +547,7 @@ const AtlasDemo: React.FC = () => {
           color: theme.colors.textSecondary,
           border: `1px solid ${theme.colors.border}`
         }}>
-          <span className="font-medium" style={{ color: theme.colors.text }}>Tip:</span> Click markers for Council insights • Use era buttons for time travel
+          <span className="font-medium" style={{ color: theme.colors.text }}>Tip:</span> Click markers for Council insights • {isMobile ? 'Tap era button' : 'Use era buttons'} for time travel
         </div>
       </div>
     </div>

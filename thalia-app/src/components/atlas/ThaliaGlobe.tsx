@@ -16,9 +16,23 @@ interface CulturalMarker {
   size: number
 }
 
+interface Arc {
+  id: string
+  startLat: number
+  startLng: number
+  endLat: number
+  endLng: number
+  color: string
+  stroke: number
+  dashLength?: number
+  dashGap?: number
+  description: string
+}
+
 interface ThaliaGlobeProps {
   era?: 'ancient' | 'modern' | 'future' | 'all'
   onMarkerClick?: (marker: CulturalMarker) => void
+  onArcDive?: (arc: Arc) => void
   activeMarkerId?: string | null
   showTradeRoutes?: boolean
 }
@@ -26,13 +40,16 @@ interface ThaliaGlobeProps {
 const ThaliaGlobe: React.FC<ThaliaGlobeProps> = ({
   era = 'all',
   onMarkerClick,
+  onArcDive,
   activeMarkerId: _activeMarkerId,
-  showTradeRoutes: _showTradeRoutes = true
+  showTradeRoutes = true
 }) => {
   const { theme } = useTheme()
   const globeRef = useRef<any>(null)
   const [markers, setMarkers] = useState<CulturalMarker[]>([])
+  const [arcs, setArcs] = useState<Arc[]>([])
   const [selectedMarker, setSelectedMarker] = useState<CulturalMarker | null>(null)
+  const [selectedArc, setSelectedArc] = useState<Arc | null>(null)
   const [_globeRotation, setGlobeRotation] = useState({ lat: 0, lng: 0 })
   const [isRotating, setIsRotating] = useState(true)
   const [globeSize, setGlobeSize] = useState(600)
@@ -136,9 +153,119 @@ const ThaliaGlobe: React.FC<ThaliaGlobeProps> = ({
       curvature: -0.4,
       color: '#84CC16',
       size: 1.1
+    },
+    // Maritime Silk Road Hubs
+    {
+      id: 'quanzhou',
+      name: 'Quanzhou',
+      lat: 24.9,
+      lng: 118.5,
+      era: 'ancient',
+      description: 'Major port of the Maritime Silk Road, hub for textile trade between China and Southeast Asia.',
+      stitchType: 'Hook‑based Mesh',
+      curvature: 0.2,
+      color: '#3B82F6',
+      size: 0.8
+    },
+    {
+      id: 'malacca',
+      name: 'Malacca',
+      lat: 2.1,
+      lng: 102.2,
+      era: 'ancient',
+      description: 'Strategic strait where Chinese, Indian, and Arab textile techniques converged.',
+      stitchType: 'Interlaced Knot',
+      curvature: 0.1,
+      color: '#3B82F6',
+      size: 0.7
+    },
+    {
+      id: 'calicut',
+      name: 'Calicut',
+      lat: 11.2,
+      lng: 75.7,
+      era: 'ancient',
+      description: 'Historic port on the Malabar Coast, known for fine cotton and intricate weaving.',
+      stitchType: 'Cotton Weave',
+      curvature: 0.0,
+      color: '#3B82F6',
+      size: 0.8
     }
   ]
 
+  // Silk Road coordinates (Chang'an to Constantinople)
+  const silkRoadCoordinates: [number, number][] = [
+    [34.2, 108.9], // Chang'an (Xi'an), China
+    [40.1, 94.6],  // Dunhuang
+    [37.6, 62.1],  // Merv
+    [33.3, 44.3],  // Baghdad
+    [41.0, 28.9],  // Constantinople (Istanbul)
+  ]
+
+  // Maritime Silk Road coordinates (Xi'an -> Quanzhou -> Malacca -> Calicut -> Istanbul)
+  const maritimeCoordinates: [number, number][] = [
+    [34.2, 108.9], // Xi'an (Chang'an)
+    [24.9, 118.5], // Quanzhou
+    [2.1, 102.2],  // Malacca
+    [11.2, 75.7],  // Calicut
+    [41.0, 28.9],  // Istanbul (Constantinople)
+  ]
+
+  useEffect(() => {
+    // Compute Silk Road arcs if trade routes are shown
+    if (showTradeRoutes) {
+      const newArcs: Arc[] = []
+      // Land Silk Road arcs
+      const segmentDescriptions = [
+        'Technique Migration: Chain‑stitch logic moving from the Han Dynasty to the Silk Road oasis.',
+        'Cultural Exchange: Lace motifs travel with Sogdian traders across the Taklamakan Desert.',
+        'Knowledge Transfer: Geometric patterns evolve through Persian mathematical treatises.',
+        'Imperial Synthesis: Byzantine silk‑weaving integrates Chinese knotting techniques.',
+      ]
+      for (let i = 0; i < silkRoadCoordinates.length - 1; i++) {
+        const [startLat, startLng] = silkRoadCoordinates[i]
+        const [endLat, endLng] = silkRoadCoordinates[i + 1]
+        newArcs.push({
+          id: `silkroad-${i}`,
+          startLat,
+          startLng,
+          endLat,
+          endLng,
+          color: '#D97706', // Amber (Ancient era color)
+          stroke: 1.5,
+          dashLength: 0.1,
+          dashGap: 0.05,
+          description: segmentDescriptions[i] || 'Trade route carrying textile knowledge.',
+        })
+      }
+      // Maritime Silk Road arcs (glowing blue pulsing)
+      const maritimeDescriptions = [
+        'Maritime Technical Exchange: Hook‑based mesh logic traveling through the Indian Ocean.',
+        'Port‑to‑Port Diffusion: Knotting techniques spread via monsoon‑driven trade winds.',
+        'Coastal Adaptation: Stitch patterns evolve in response to humid tropical climates.',
+        'Final Integration: Maritime knowledge merges with Mediterranean textile traditions.',
+      ]
+      for (let i = 0; i < maritimeCoordinates.length - 1; i++) {
+        const [startLat, startLng] = maritimeCoordinates[i]
+        const [endLat, endLng] = maritimeCoordinates[i + 1]
+        newArcs.push({
+          id: `maritime-${i}`,
+          startLat,
+          startLng,
+          endLat,
+          endLng,
+          color: '#06B6D4', // Cyan (Maritime color)
+          stroke: 2,
+          dashLength: 0.2,
+          dashGap: 0.1,
+          description: maritimeDescriptions[i] || 'Maritime route carrying textile knowledge.',
+        })
+      }
+      setArcs(newArcs)
+    } else {
+      setArcs([])
+    }
+  }, [showTradeRoutes])
 
   useEffect(() => {
     // Filter markers by era if specified
@@ -181,6 +308,7 @@ const ThaliaGlobe: React.FC<ThaliaGlobeProps> = ({
 
   const handleMarkerClick = (marker: CulturalMarker) => {
     setSelectedMarker(marker)
+    setSelectedArc(null) // Clear arc selection
     if (onMarkerClick) {
       onMarkerClick(marker)
     }
@@ -190,6 +318,22 @@ const ThaliaGlobe: React.FC<ThaliaGlobeProps> = ({
       globeRef.current.pointOfView(
         { lat: marker.lat, lng: marker.lng, altitude: 1.5 },
         1000
+      )
+    }
+    setIsRotating(false)
+    setTimeout(() => setIsRotating(true), 3000)
+  }
+
+  const handleArcClick = (arc: Arc) => {
+    setSelectedArc(arc)
+    setSelectedMarker(null) // Clear marker selection
+    // Optionally fly to the midpoint of the arc
+    if (globeRef.current) {
+      const midLat = (arc.startLat + arc.endLat) / 2
+      const midLng = (arc.startLng + arc.endLng) / 2
+      globeRef.current.pointOfView(
+        { lat: midLat, lng: midLng, altitude: 2 },
+        800
       )
     }
     setIsRotating(false)
@@ -237,11 +381,13 @@ const ThaliaGlobe: React.FC<ThaliaGlobeProps> = ({
     }
   }
 
+  const isMaritimeArc = (arc: Arc) => arc.color === '#06B6D4' || arc.id.startsWith('maritime-')
+
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full z-10">
       {/* Globe Container */}
       <div
-        className="relative rounded-xl overflow-hidden border"
+        className={`relative rounded-xl overflow-hidden border ${isMobile ? 'h-[70vh]' : 'min-h-[50vh]'}`}
         style={{
           borderColor: theme.colors.border,
           backgroundColor: theme.colors.background
@@ -252,7 +398,7 @@ const ThaliaGlobe: React.FC<ThaliaGlobeProps> = ({
       >
         <Globe
           ref={globeRef}
-          globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+          globeImageUrl={era === 'ancient' ? "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg" : "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"}
           bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
           backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
           width={globeSize}
@@ -285,6 +431,17 @@ const ThaliaGlobe: React.FC<ThaliaGlobeProps> = ({
           pointsMerge={false}
           pointResolution={16}
           enablePointerInteraction={true}
+          arcsData={arcs}
+          arcStartLat="startLat"
+          arcStartLng="startLng"
+          arcEndLat="endLat"
+          arcEndLng="endLng"
+          arcColor="color"
+          arcStroke="stroke"
+          arcDashLength="dashLength"
+          arcDashGap="dashGap"
+          arcDashAnimateTime={(arc: any) => arc.color === '#06B6D4' ? 4000 : 2000}
+          onArcClick={(arc: any) => handleArcClick(arc)}
         />
 
         {/* Controls */}
@@ -432,6 +589,124 @@ const ThaliaGlobe: React.FC<ThaliaGlobeProps> = ({
             </div>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* Selected Arc Details */}
+      <AnimatePresence>
+        {selectedArc && (() => {
+          const maritime = isMaritimeArc(selectedArc)
+          const arcColor = maritime ? '#06B6D4' : '#D97706'
+          const arcTitle = maritime ? 'Maritime Silk Road Arc' : 'Silk Road Trade Arc'
+          const eraLabel = maritime ? 'Maritime' : 'Ancient'
+          const culturalImpact = maritime ? 'Hook‑based mesh diffusion' : 'Chain‑stitch logic'
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className={`absolute ${isMobile ? 'bottom-2 right-2 left-2' : 'bottom-4 right-4 left-4 lg:left-auto lg:w-96'}`}
+            >
+              <div className={`${isMobile ? 'p-3' : 'p-4'} rounded-xl border`} style={{
+                backgroundColor: theme.colors.card,
+                borderColor: theme.colors.border,
+                boxShadow: `0 10px 30px ${theme.colors.border}20`
+              }}>
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-bold`} style={{ color: arcColor }}>
+                      {arcTitle}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`${isMobile ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} rounded-full`} style={{
+                        backgroundColor: arcColor + '20',
+                        color: arcColor
+                      }}>
+                        {eraLabel}
+                      </span>
+                      <span className={`${isMobile ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} rounded-full`} style={{
+                        backgroundColor: theme.colors.background,
+                        color: theme.colors.textSecondary
+                      }}>
+                        {maritime ? 'Port‑to‑Port Diffusion' : 'Technique Migration'}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedArc(null)}
+                    className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full flex items-center justify-center`}
+                    style={{
+                      backgroundColor: theme.colors.background,
+                      color: theme.colors.text,
+                      border: `1px solid ${theme.colors.border}`
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} mb-3`} style={{ color: theme.colors.textSecondary }}>
+                  {selectedArc.description}
+                </p>
+                
+                <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-2 gap-3'}`}>
+                  <div className={`${isMobile ? 'p-2' : 'p-3'} rounded-lg`} style={{
+                    backgroundColor: theme.colors.background,
+                    border: `1px solid ${theme.colors.border}`
+                  }}>
+                    <div className={`${isMobile ? 'text-[10px]' : 'text-xs'}`} style={{ color: theme.colors.textSecondary }}>Route Segment</div>
+                    <div className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium`} style={{ color: theme.colors.text }}>
+                      {selectedArc.startLat.toFixed(1)},{selectedArc.startLng.toFixed(1)} → {selectedArc.endLat.toFixed(1)},{selectedArc.endLng.toFixed(1)}
+                    </div>
+                  </div>
+                  <div className={`${isMobile ? 'p-2' : 'p-3'} rounded-lg`} style={{
+                    backgroundColor: theme.colors.background,
+                    border: `1px solid ${theme.colors.border}`
+                  }}>
+                    <div className={`${isMobile ? 'text-[10px]' : 'text-xs'}`} style={{ color: theme.colors.textSecondary }}>Cultural Impact</div>
+                    <div className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium`} style={{ color: theme.colors.text }}>
+                      {culturalImpact}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className={`grid ${isMobile ? 'grid-cols-1 gap-2' : 'grid-cols-2 gap-3'} mt-3`}>
+                  <button
+                    onClick={() => {
+                      console.log('Explore arc:', selectedArc)
+                    }}
+                    className={`${isMobile ? 'px-3 py-2 text-xs' : 'px-4 py-2.5 text-sm'} rounded-lg font-medium flex items-center justify-center gap-2`}
+                    style={{
+                      backgroundColor: arcColor,
+                      color: theme.colors.background
+                    }}
+                  >
+                    Explore This Migration
+                  </button>
+                  {maritime && (
+                    <button
+                      onClick={() => {
+                        if (onArcDive) {
+                          onArcDive(selectedArc)
+                        } else {
+                          console.log('Dive into Master Gallery for arc:', selectedArc)
+                          // Default behavior: navigate to Master Gallery (if router available)
+                          // For now, just log
+                        }
+                      }}
+                      className={`${isMobile ? 'px-3 py-2 text-xs' : 'px-4 py-2.5 text-sm'} rounded-lg font-medium flex items-center justify-center gap-2`}
+                      style={{
+                        backgroundColor: theme.colors.primary,
+                        color: theme.colors.background
+                      }}
+                    >
+                      Dive into Master Gallery
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )
+        })()}
       </AnimatePresence>
 
       {/* Mobile Instructions */}

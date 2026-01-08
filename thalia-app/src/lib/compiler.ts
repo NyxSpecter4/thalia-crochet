@@ -1,3 +1,5 @@
+import { calculateEnneperStitchProgression } from './geometry'
+
 export interface CrochetPattern {
   skillLevel: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert'
   materials: string[]
@@ -5,6 +7,7 @@ export interface CrochetPattern {
   instructions: RowInstruction[]
   notes: string[]
   culturalContext?: string
+  assemblyParts?: AssemblyPart[]
 }
 
 export interface RowInstruction {
@@ -14,18 +17,35 @@ export interface RowInstruction {
   specialNotes?: string[]
 }
 
+export interface AssemblyPart {
+  partName: string
+  instructions: RowInstruction[]
+  joinInstructions?: string
+}
+
 export interface PatternParameters {
   curvature: number
   baseStitches: number
   rows: number
-  stylePreset?: 'irish_famine_rose' | 'hyper_realistic_botanical' | 'amigurumi_core' | 'oya_lace' | 'default'
+  stylePreset?: 'irish_famine_rose' | 'hyper_realistic_botanical' | 'amigurumi_core' | 'oya_lace' | 'default' | 'enneper_minimal' | 'boys_surface' | 'roman_surface'
 }
 
 export function compilePattern(params: PatternParameters): CrochetPattern {
   const { curvature, baseStitches, rows, stylePreset = 'default' } = params
   
+  // Handle multi-part surfaces
+  if (stylePreset === 'boys_surface' || stylePreset === 'roman_surface') {
+    return compileMultiPartSurface(params)
+  }
+  
   // Calculate stitch progression
-  const stitchProgression = calculateStitchProgression(curvature, baseStitches, rows)
+  let stitchProgression: number[]
+  if (stylePreset === 'enneper_minimal') {
+    // Use Enneper's minimal surface progression
+    stitchProgression = calculateEnneperStitchProgression(baseStitches, rows, Math.abs(curvature))
+  } else {
+    stitchProgression = calculateStitchProgression(curvature, baseStitches, rows)
+  }
   
   // Determine skill level based on complexity
   const skillLevel = determineSkillLevel(curvature, rows, stylePreset)
@@ -148,6 +168,39 @@ function getMaterialsForPreset(stylePreset: string): string[] {
         'Starch for blocking',
         'Fine sewing needle'
       ]
+    case 'enneper_minimal':
+      return [
+        'Fine merino wool yarn (approx. 150g)',
+        '3.5mm crochet hook',
+        'Stitch markers',
+        'Blocking wires for precise shaping',
+        'Mathematical diagram of Enneper’s surface (optional)',
+        'Yarn needle',
+        'Scissors'
+      ]
+    case 'boys_surface':
+      return [
+        'Fine cotton or wool yarn (approx. 300g)',
+        '3.0mm crochet hook',
+        'Stitch markers (multiple colors for lobe identification)',
+        'Yarn needle for grafting',
+        'Polyester fiberfill for central sphere',
+        'Mathematical diagram of Boy\'s Surface (optional)',
+        'Blocking wires and board',
+        'Fabric stiffener for structural integrity',
+        'Scissors'
+      ]
+    case 'roman_surface':
+      return [
+        'Fine cotton yarn (approx. 250g)',
+        '3.5mm crochet hook',
+        'Stitch markers for lobe alignment',
+        'Yarn needle for assembly',
+        'Blocking pins and wires',
+        'Mathematical diagram of Steiner\'s Roman Surface (optional)',
+        'Starch for shaping',
+        'Scissors'
+      ]
     default:
       return baseMaterials
   }
@@ -238,6 +291,11 @@ function generateRowInstructions(
         specialNotes.push('Maintain even tension to prevent stuffing from showing through')
       }
     }
+
+    // Enneper's minimal surface special note
+    if (stylePreset === 'enneper_minimal' && round > 1 && stitchCount > stitchProgression[round - 2]) {
+      specialNotes.push(`Row ${round}: Increasing to achieve minimal surface curvature.`)
+    }
     
     instructions.push({
       round,
@@ -297,6 +355,12 @@ function generatePatternNotes(curvature: number, stylePreset: string): string[] 
       notes.push('Incorporate beads on every 3rd or 5th stitch for traditional embellishment.')
       notes.push('Cultural note: Oya is traditionally worn as edging on headscarves, each pattern conveying specific messages.')
       break
+    case 'enneper_minimal':
+      notes.push('Enneper’s minimal surface: a classic mathematical surface with zero mean curvature.')
+      notes.push('Stitch progression follows trigonometric arc‑length growth to approximate the surface’s geometry.')
+      notes.push('Block under tension to reveal the self‑intersecting saddle shape.')
+      notes.push('Mathematical note: This pattern visualizes the parametric equations (u cos v, u sin v, u² cos 2v) through crochet.')
+      break
   }
   
   // Mathematical note
@@ -318,9 +382,263 @@ function getCulturalContext(stylePreset: string): string | undefined {
       return 'Contemporary botanical art movement: Blends scientific illustration precision with fiber arts. Inspired by the 17th-century "Florilegium" tradition of documenting plant species through detailed artwork.'
     case 'amigurumi_core':
       return 'Japanese amigurumi: Modern crochet technique for creating stuffed toys, characterized by tight stitches and spherical shaping. Emerged in post-war Japan as part of kawaii (cute) culture, now a global phenomenon.'
+    case 'enneper_minimal':
+      return 'Enneper’s minimal surface (1864): Discovered by German mathematician Alfred Enneper, this surface is a classic example of a minimal surface with zero mean curvature. Its parametric equations produce a self‑intersecting saddle shape that has inspired both mathematicians and artists. Crocheting this surface demonstrates the tangible beauty of differential geometry.'
     default:
       return 'Geometric crochet: Mathematical approach to fiber arts that visualizes curvature through stitch progression. Part of the "mathematical knitting" movement that bridges craft and computational design.'
   }
+}
+
+function compileMultiPartSurface(params: PatternParameters): CrochetPattern {
+  const { curvature, baseStitches, rows, stylePreset } = params
+  
+  const skillLevel = 'Expert'
+  const materials = getMaterialsForPreset(stylePreset!)
+  const abbreviations = getStandardAbbreviations()
+  
+  let assemblyParts: AssemblyPart[] = []
+  let notes: string[] = []
+  let culturalContext: string | undefined
+  
+  if (stylePreset === 'boys_surface') {
+    // Boy's Surface: 3 lobes + central sphere + grafting assembly
+    assemblyParts = [
+      {
+        partName: 'Part 1: The 3 Lobes',
+        instructions: generateLobeInstructions(baseStitches, rows, curvature),
+        joinInstructions: 'Join lobes at Triple-Point (1,1,1) with 90-degree coordinate rotations. Use mattress stitch for seamless grafting.'
+      },
+      {
+        partName: 'Part 2: The Central Sphere',
+        instructions: generateSphereInstructions(Math.floor(baseStitches * 0.6), Math.floor(rows * 0.7), curvature),
+        joinInstructions: 'Attach to lobe junctions using whip stitch. Ensure sphere sits at the triple self-intersection point.'
+      },
+      {
+        partName: 'Part 3: The Grafting Assembly',
+        instructions: generateGraftingInstructions(baseStitches, rows),
+        joinInstructions: 'Weave through all three lobes and central sphere using yarn needle. Follow Apéry parametrization: (cos u cos v, sin u cos v, cos 2u sin v).'
+      }
+    ]
+    
+    notes = [
+      'Boy\'s Surface: A non-orientable surface with triple self-intersection.',
+      'Work each lobe separately using hyperbolic increases for the saddle shape.',
+      'Join at Triple-Point (1,1,1) with 90-degree coordinate rotations.',
+      'Use the Apéry parametrization: (cos u cos v, sin u cos v, cos 2u sin v) with α = 0.5.',
+      'Grafting requires precise alignment—use stitch markers at intersection points.',
+      'Mathematical note: This is a model of the real projective plane in ℝ³.'
+    ]
+    
+    culturalContext = 'Boy\'s Surface (1901): Discovered by German mathematician Werner Boy while studying David Hilbert\'s problem on immersions of the projective plane. Named after Boy, this surface has exactly three lobes meeting at a triple point—a topological marvel that can be physically realized through crochet.'
+    
+  } else if (stylePreset === 'roman_surface') {
+    // Roman Surface: Steiner's Roman Surface
+    assemblyParts = [
+      {
+        partName: 'Part 1: The Cross-Cap Structure',
+        instructions: generateCrossCapInstructions(baseStitches, rows, curvature),
+        joinInstructions: 'Join cross-cap halves along the self-intersection line using backstitch.'
+      },
+      {
+        partName: 'Part 2: The Four Lobes',
+        instructions: generateRomanLobeInstructions(baseStitches, rows, curvature),
+        joinInstructions: 'Attach lobes at cardinal points (N, S, E, W) with slip stitch joins.'
+      },
+      {
+        partName: 'Part 3: The Central Disc',
+        instructions: generateCentralDiscInstructions(Math.floor(baseStitches * 0.8), Math.floor(rows * 0.5), curvature),
+        joinInstructions: 'Sew disc to center, gathering edges to create the Roman surface characteristic pinch.'
+      }
+    ]
+    
+    notes = [
+      'Roman Surface: Steiner\'s Roman surface, a quartic surface with four lobes.',
+      'Parametric equations: x = sin(2u) * cos²(v), y = sin(u) * sin(2v), z = cos(u) * sin(2v).',
+      'Work cross-cap first, then attach lobes at 90-degree intervals.',
+      'The central disc creates the characteristic self-intersection at the origin.',
+      'Block aggressively to open up the lobes and reveal the mathematical structure.',
+      'Historical note: Named "Roman" because Steiner discovered it while in Rome in 1844.'
+    ]
+    
+    culturalContext = 'Steiner\'s Roman Surface (1844): Discovered by Swiss mathematician Jakob Steiner during his travels in Rome. A quartic surface with the remarkable property of being a projection of the Veronese surface. Its four lobes meet at a central self‑intersection, creating a visually striking representation of abstract algebraic geometry.'
+  }
+  
+  // Add curvature note
+  notes.push(`Mathematical curvature parameter: K = ${curvature.toFixed(3)}`)
+  
+  return {
+    skillLevel,
+    materials,
+    abbreviations,
+    instructions: [], // Main instructions are in assembly parts
+    notes,
+    culturalContext,
+    assemblyParts
+  }
+}
+
+function generateLobeInstructions(baseStitches: number, rows: number, curvature: number): RowInstruction[] {
+  const instructions: RowInstruction[] = []
+  const lobeRows = Math.floor(rows * 0.8)
+  
+  for (let i = 0; i < lobeRows; i++) {
+    const round = i + 1
+    const stitchCount = Math.floor(baseStitches * (1 + Math.abs(curvature) * i / lobeRows * 1.5))
+    
+    let instruction = ''
+    if (round === 1) {
+      instruction = `Ch ${stitchCount}, join with sl st to form ring.`
+    } else {
+      const increaseRate = Math.floor(stitchCount / (round * 2))
+      instruction = `Rnd ${round}: Ch 3 (counts as dc), *dc in next ${increaseRate} sts, inc in next st, repeat from * around. Join with sl st. (${stitchCount} sts)`
+    }
+    
+    instructions.push({
+      round,
+      stitchCount,
+      instruction,
+      specialNotes: i === Math.floor(lobeRows / 2) ? ['Mid-lobe: maintain saddle shape for Boy\'s Surface curvature'] : undefined
+    })
+  }
+  
+  return instructions
+}
+
+function generateSphereInstructions(baseStitches: number, rows: number, curvature: number): RowInstruction[] {
+  const instructions: RowInstruction[] = []
+  
+  for (let i = 0; i < rows; i++) {
+    const round = i + 1
+    let stitchCount = baseStitches
+    
+    if (i < rows / 2) {
+      // Increasing phase
+      stitchCount = Math.floor(baseStitches * (1 + (i / (rows / 2)) * 0.5))
+    } else {
+      // Decreasing phase
+      stitchCount = Math.floor(baseStitches * (1.5 - ((i - rows / 2) / (rows / 2)) * 0.5))
+    }
+    
+    let instruction = ''
+    if (round === 1) {
+      instruction = `Ch ${stitchCount}, join with sl st to form ring.`
+    } else if (i < rows / 2) {
+      instruction = `Rnd ${round}: Ch 3 (counts as dc), *dc in next 2 sts, inc in next st, repeat from * around. Join with sl st. (${stitchCount} sts)`
+    } else {
+      instruction = `Rnd ${round}: Ch 3 (counts as dc), *dc in next 2 sts, dc2tog, repeat from * around. Join with sl st. (${stitchCount} sts)`
+    }
+    
+    instructions.push({
+      round,
+      stitchCount,
+      instruction,
+      specialNotes: i === Math.floor(rows / 2) ? ['Equator of central sphere: maintain even tension'] : undefined
+    })
+  }
+  
+  return instructions
+}
+
+function generateGraftingInstructions(baseStitches: number, rows: number): RowInstruction[] {
+  return [
+    {
+      round: 1,
+      stitchCount: baseStitches * 3,
+      instruction: 'Using yarn needle and matching yarn, prepare grafting thread 3× the circumference.',
+      specialNotes: ['Cut yarn 3× longer than needed to avoid running out during grafting']
+    },
+    {
+      round: 2,
+      stitchCount: 0,
+      instruction: 'Thread needle and begin at Triple-Point (1,1,1). Weave through all three lobes following Apéry parametrization path.',
+      specialNotes: ['Follow mathematical coordinates: (cos u cos v, sin u cos v, cos 2u sin v) with α = 0.5']
+    },
+    {
+      round: 3,
+      stitchCount: 0,
+      instruction: 'Complete grafting by weaving back through central sphere and securing with multiple knots.',
+      specialNotes: ['Hide knots inside central sphere for clean finish']
+    }
+  ]
+}
+
+function generateCrossCapInstructions(baseStitches: number, rows: number, curvature: number): RowInstruction[] {
+  const instructions: RowInstruction[] = []
+  const crossCapRows = Math.floor(rows * 0.6)
+  
+  for (let i = 0; i < crossCapRows; i++) {
+    const round = i + 1
+    const stitchCount = Math.floor(baseStitches * (1 - Math.abs(curvature) * i / crossCapRows * 0.7))
+    
+    let instruction = ''
+    if (round === 1) {
+      instruction = `Ch ${stitchCount}, join with sl st to form ring.`
+    } else {
+      const decreaseRate = Math.floor(stitchCount / (round * 2))
+      instruction = `Rnd ${round}: Ch 3 (counts as dc), *dc in next ${decreaseRate} sts, dc2tog, repeat from * around. Join with sl st. (${stitchCount} sts)`
+    }
+    
+    instructions.push({
+      round,
+      stitchCount,
+      instruction,
+      specialNotes: i === Math.floor(crossCapRows / 2) ? ['Cross-cap midpoint: creates self-intersection line'] : undefined
+    })
+  }
+  
+  return instructions
+}
+
+function generateRomanLobeInstructions(baseStitches: number, rows: number, curvature: number): RowInstruction[] {
+  const instructions: RowInstruction[] = []
+  const lobeRows = Math.floor(rows * 0.5)
+  
+  for (let i = 0; i < lobeRows; i++) {
+    const round = i + 1
+    const stitchCount = Math.floor(baseStitches * (1 + Math.abs(curvature) * i / lobeRows * 0.8))
+    
+    let instruction = ''
+    if (round === 1) {
+      instruction = `Ch ${stitchCount}, join with sl st to form ring.`
+    } else {
+      const increaseRate = Math.floor(stitchCount / (round * 3))
+      instruction = `Rnd ${round}: Ch 3 (counts as dc), *dc in next ${increaseRate} sts, inc in next st, repeat from * around. Join with sl st. (${stitchCount} sts)`
+    }
+    
+    instructions.push({
+      round,
+      stitchCount,
+      instruction,
+      specialNotes: i === lobeRows - 1 ? ['Lobe tip: leave long tail for attaching to central disc'] : undefined
+    })
+  }
+  
+  return instructions
+}
+
+function generateCentralDiscInstructions(baseStitches: number, rows: number, curvature: number): RowInstruction[] {
+  const instructions: RowInstruction[] = []
+  
+  for (let i = 0; i < rows; i++) {
+    const round = i + 1
+    const stitchCount = baseStitches
+    
+    let instruction = ''
+    if (round === 1) {
+      instruction = `Ch ${stitchCount}, join with sl st to form ring.`
+    } else {
+      instruction = `Rnd ${round}: Ch 3 (counts as dc), dc in each st around. Join with sl st. (${stitchCount} sts)`
+    }
+    
+    instructions.push({
+      round,
+      stitchCount,
+      instruction,
+      specialNotes: i === rows - 1 ? ['Edge of disc: will be gathered to create Roman surface pinch'] : undefined
+    })
+  }
+  
+  return instructions
 }
 
 // Utility function to format pattern as text
@@ -342,16 +660,36 @@ export function formatPatternAsText(pattern: CrochetPattern): string {
   })
   text += `\n`
   
-  text += `INSTRUCTIONS:\n`
-  pattern.instructions.forEach(row => {
-    text += `Rnd ${row.round} (${row.stitchCount} sts): ${row.instruction}\n`
-    if (row.specialNotes && row.specialNotes.length > 0) {
-      row.specialNotes.forEach(note => {
-        text += `  Note: ${note}\n`
+  // Include assembly parts if present
+  if (pattern.assemblyParts && pattern.assemblyParts.length > 0) {
+    text += `ASSEMBLY PARTS:\n`
+    pattern.assemblyParts.forEach((part, index) => {
+      text += `\n${part.partName}:\n`
+      part.instructions.forEach(row => {
+        text += `  Rnd ${row.round} (${row.stitchCount} sts): ${row.instruction}\n`
+        if (row.specialNotes && row.specialNotes.length > 0) {
+          row.specialNotes.forEach(note => {
+            text += `    Note: ${note}\n`
+          })
+        }
       })
-    }
-  })
-  text += `\n`
+      if (part.joinInstructions) {
+        text += `  Join: ${part.joinInstructions}\n`
+      }
+    })
+    text += `\n`
+  } else {
+    text += `INSTRUCTIONS:\n`
+    pattern.instructions.forEach(row => {
+      text += `Rnd ${row.round} (${row.stitchCount} sts): ${row.instruction}\n`
+      if (row.specialNotes && row.specialNotes.length > 0) {
+        row.specialNotes.forEach(note => {
+          text += `  Note: ${note}\n`
+        })
+      }
+    })
+    text += `\n`
+  }
   
   text += `NOTES:\n`
   pattern.notes.forEach((note, index) => {
