@@ -979,7 +979,7 @@ export function calculateAariStitchDensity(
  */
 export function calculateSilverPlatedNylonProperties(
   coatingThickness: number = 100, // nm
-  nylonCoreDiameter: number = 0.2 // mm
+  _nylonCoreDiameter: number = 0.2 // mm
 ): {
   youngsModulus: { min: number; max: number; estimated: number; unit: string };
   fractureStrain: { coating: number; nylonCore: number; critical: number; unit: string };
@@ -1074,7 +1074,7 @@ export function generateBoysSurfaceLoftingPattern(
  */
 export function calculateStitchTension(
   curvature: number,
-  stitchLength: number = 5, // mm
+  _stitchLength: number = 5, // mm
   materialProperties?: ReturnType<typeof calculateSilverPlatedNylonProperties>
 ): {
   tension: number; // 0-1 scale

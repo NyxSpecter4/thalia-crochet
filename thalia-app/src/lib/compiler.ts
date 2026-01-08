@@ -616,7 +616,7 @@ function generateRomanLobeInstructions(baseStitches: number, rows: number, curva
   return instructions
 }
 
-function generateCentralDiscInstructions(baseStitches: number, rows: number, curvature: number): RowInstruction[] {
+function generateCentralDiscInstructions(baseStitches: number, rows: number, _curvature: number): RowInstruction[] {
   const instructions: RowInstruction[] = []
   
   for (let i = 0; i < rows; i++) {

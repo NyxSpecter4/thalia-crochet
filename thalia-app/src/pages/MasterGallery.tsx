@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { councilMembers, sampleInsights } from '../data/council';
@@ -222,7 +221,7 @@ const MasterGallery: React.FC = () => {
   const [showCouncilOverlay, setShowCouncilOverlay] = useState(false);
   const [selectedMotif, setSelectedMotif] = useState<MotifCard | null>(null);
   const [motifs, setMotifs] = useState<MotifCard[]>(fallbackMotifs);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {

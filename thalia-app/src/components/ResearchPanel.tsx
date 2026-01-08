@@ -1,6 +1,6 @@
 import React from 'react';
 import { researchData, RESEARCH_GAPS, getResearchProgress, PHYSICS_CONSTANTS } from '../data/researchConstants';
-import { generateResearchIntegrationReport, calculateAariStitchDensity, calculateSilverPlatedNylonProperties } from '../lib/geometry';
+import { generateResearchIntegrationReport } from '../lib/geometry';
 import { useTheme } from '../context/ThemeContext';
 
 interface ResearchPanelProps {
