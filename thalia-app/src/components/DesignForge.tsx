@@ -63,8 +63,9 @@ const DesignForge: React.FC<DesignForgeProps> = ({
             era,
             motif,
             K: curvature,
-            style: 'cinematic',
-            resolution: '1024x1024'
+            style: 'photorealistic_macro',
+            resolution: '1024x1024',
+            prompt: 'Photorealistic macro photography of a physical ' + motif + ' artifact, single thread of fine silk, visible intricate crochet stitches, directional studio lighting, 8k.'
           }),
         });
 
@@ -148,8 +149,9 @@ const DesignForge: React.FC<DesignForgeProps> = ({
           era,
           motif,
           K: curvature,
-          style: 'cinematic',
-          resolution: '1024x1024'
+          style: 'photorealistic_macro',
+          resolution: '1024x1024',
+          prompt: 'Photorealistic macro photography of a physical ' + motif + ' artifact, single thread of fine silk, visible intricate crochet stitches, directional studio lighting, 8k.'
         }),
       });
 
@@ -321,10 +323,10 @@ const DesignForge: React.FC<DesignForgeProps> = ({
                           />
                         </div>
                         <h4 className="text-base sm:text-lg font-medium mb-1 sm:mb-2 text-center" style={{ color: theme.colors.text }}>
-                          Forging Visual...
+                          Extracting DNA from {motif}...
                         </h4>
                         <p className="text-xs sm:text-sm text-center mb-3 sm:mb-4 px-2" style={{ color: theme.colors.textSecondary }}>
-                          "A breathtaking, museum-quality 3D macro photograph of a {era} crochet {motif} with intricate fiber textures, {curvature.toFixed(2)} curvature, cinematic lighting, obsidian background."
+                          "Photorealistic macro photography of a physical {motif} artifact, single thread of fine silk, visible intricate crochet stitches, directional studio lighting, 8k."
                         </p>
                         
                         {/* Progress Bar */}
@@ -413,7 +415,7 @@ const DesignForge: React.FC<DesignForgeProps> = ({
                       DALL-E 3 Prompt
                     </h4>
                     <p className="text-xs sm:text-sm" style={{ color: theme.colors.textSecondary }}>
-                      "A breathtaking, museum-quality 3D macro photograph of a {era} crochet {motif} with intricate fiber textures, {curvature.toFixed(2)} curvature, cinematic lighting, obsidian background."
+                      "Photorealistic macro photography of a physical {motif} artifact, single thread of fine silk, visible intricate crochet stitches, directional studio lighting, 8k."
                     </p>
                   </div>
                 </div>
