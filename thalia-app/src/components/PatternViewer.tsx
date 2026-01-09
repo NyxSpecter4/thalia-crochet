@@ -6,6 +6,7 @@ import CouncilSidebar from './CouncilSidebar'
 import DesignForge from './DesignForge'
 import ResearchPanel from './ResearchPanel'
 import SilkFilter from './effects/SilkFilter'
+import { councilMembers } from '../data/council'
 
 interface PatternViewerProps {
   era?: Era
@@ -91,6 +92,58 @@ const PatternViewer: React.FC<PatternViewerProps> = ({ era, themeOverride, compa
     const centerX = canvas.width / 2
     const centerY = canvas.height / 2
     
+    // Apply expert lens shader overlays
+    const applyExpertLens = (ctx: CanvasRenderingContext2D, node: any, scaledX: number, scaledY: number, scaledSize: number) => {
+      const member = councilMembers.find(m => m.id === activeExpertLens)
+      if (!member) return
+      
+      switch (member.id) {
+        case 'ethno-mathematician':
+          // Ethno-Mathematician: Red/Blue curvature heatmap
+          const heatValue = Math.abs(curvature) * 255
+          ctx.fillStyle = curvature < 0
+            ? `rgba(255, ${255 - heatValue}, ${255 - heatValue}, 0.8)`
+            : `rgba(${255 - heatValue}, ${255 - heatValue}, 255, 0.8)`
+          break
+          
+        case 'material-architect':
+          // Material Architect: Stress visualization with concentric rings
+          const stress = Math.abs(curvature) * (1 + Math.abs(node.x - 400) / 400)
+          ctx.fillStyle = `rgba(100, ${255 - stress * 100}, 100, 0.8)`
+          
+          // Draw stress rings
+          ctx.beginPath()
+          ctx.arc(scaledX, scaledY, scaledSize * 1.5, 0, Math.PI * 2)
+          ctx.strokeStyle = `rgba(100, ${255 - stress * 100}, 100, 0.3)`
+          ctx.lineWidth = 2
+          ctx.stroke()
+          break
+          
+        case 'heritage-futurist':
+          // Heritage Futurist: Neon glow with trail effect
+          ctx.fillStyle = `rgba(0, 245, 255, 0.9)`
+          ctx.shadowBlur = 15
+          ctx.shadowColor = '#00F5FF'
+          break
+          
+        case 'hx-strategist':
+          // HX Strategist: Flow state visualization with pulsing effect
+          const pulse = (Date.now() / 1000) % 1
+          const pulseSize = scaledSize * (0.8 + 0.4 * Math.sin(pulse * Math.PI * 2))
+          ctx.fillStyle = `rgba(251, 191, 36, 0.9)`
+          ctx.beginPath()
+          ctx.arc(scaledX, scaledY, pulseSize, 0, Math.PI * 2)
+          ctx.fill()
+          return true // Skip default drawing
+          
+        default:
+          // Default: Use theme-based colors
+          const baseColor = curvature < 0 ? theme.colors.accent : theme.colors.primary
+          ctx.fillStyle = baseColor + 'CC'
+      }
+      return false
+    }
+    
     nodes.forEach((node) => {
       const scaledX = node.x * scaleX
       const scaledY = node.y * scaleY
@@ -103,40 +156,48 @@ const PatternViewer: React.FC<PatternViewerProps> = ({ era, themeOverride, compa
       const maxDistance = Math.min(canvas.width, canvas.height) / 2
       const edgeFactor = Math.max(0, 1 - distance / maxDistance)
       
-      // Base color based on curvature
-      let baseColor = curvature < 0 ? theme.colors.accent : theme.colors.primary
+      // Apply expert lens if active
+      const skipDefault = activeExpertLens ? applyExpertLens(ctx, node, scaledX, scaledY, scaledSize) : false
       
-      // Apply Fresnel effect: brighter at edges
-      const brightness = 0.7 + 0.3 * edgeFactor
-      ctx.beginPath()
-      ctx.arc(scaledX, scaledY, scaledSize, 0, Math.PI * 2)
-      
-      // Create gradient for silk-like appearance
-      const gradient = ctx.createRadialGradient(
-        scaledX, scaledY, 0,
-        scaledX, scaledY, scaledSize * 2
-      )
-      
-      if (currentEra === 'ancient') {
-        gradient.addColorStop(0, `rgba(212, 175, 55, ${brightness})`)
-        gradient.addColorStop(1, `rgba(166, 123, 91, ${brightness * 0.7})`)
-      } else if (currentEra === 'modern') {
-        gradient.addColorStop(0, `rgba(59, 130, 246, ${brightness})`)
-        gradient.addColorStop(1, `rgba(30, 64, 175, ${brightness * 0.7})`)
-      } else {
-        gradient.addColorStop(0, `rgba(139, 92, 246, ${brightness})`)
-        gradient.addColorStop(1, `rgba(109, 40, 217, ${brightness * 0.7})`)
+      if (!skipDefault) {
+        // Default Fresnel effect drawing
+        const brightness = 0.7 + 0.3 * edgeFactor
+        ctx.beginPath()
+        ctx.arc(scaledX, scaledY, scaledSize, 0, Math.PI * 2)
+        
+        // Create gradient for silk-like appearance
+        const gradient = ctx.createRadialGradient(
+          scaledX, scaledY, 0,
+          scaledX, scaledY, scaledSize * 2
+        )
+        
+        if (currentEra === 'ancient') {
+          gradient.addColorStop(0, `rgba(212, 175, 55, ${brightness})`)
+          gradient.addColorStop(1, `rgba(166, 123, 91, ${brightness * 0.7})`)
+        } else if (currentEra === 'modern') {
+          gradient.addColorStop(0, `rgba(59, 130, 246, ${brightness})`)
+          gradient.addColorStop(1, `rgba(30, 64, 175, ${brightness * 0.7})`)
+        } else {
+          gradient.addColorStop(0, `rgba(139, 92, 246, ${brightness})`)
+          gradient.addColorStop(1, `rgba(109, 40, 217, ${brightness * 0.7})`)
+        }
+        
+        ctx.fillStyle = gradient
+        ctx.fill()
+        
+        // Add subtle glow
+        ctx.beginPath()
+        ctx.arc(scaledX, scaledY, scaledSize * 1.2, 0, Math.PI * 2)
+        ctx.strokeStyle = `${curvature < 0 ? theme.colors.accent : theme.colors.primary}40`
+        ctx.lineWidth = 1
+        ctx.stroke()
       }
       
-      ctx.fillStyle = gradient
-      ctx.fill()
-      
-      // Add subtle glow
-      ctx.beginPath()
-      ctx.arc(scaledX, scaledY, scaledSize * 1.2, 0, Math.PI * 2)
-      ctx.strokeStyle = `${baseColor}40`
-      ctx.lineWidth = 1
-      ctx.stroke()
+      // Reset shadow if Heritage Futurist was active
+      if (activeExpertLens === 'heritage-futurist') {
+        ctx.shadowBlur = 0
+        ctx.shadowColor = 'transparent'
+      }
     })
     
     // Draw boundary if enabled
@@ -159,7 +220,7 @@ const PatternViewer: React.FC<PatternViewerProps> = ({ era, themeOverride, compa
       ctx.lineWidth = 3
       ctx.stroke()
     }
-  }, [nodes, curvature, theme, canvasDimensions, showBoundary, currentEra])
+  }, [nodes, curvature, theme, canvasDimensions, showBoundary, currentEra, activeExpertLens])
 
   const handleCurvatureChange = (value: number) => {
     if (isLocked) return
@@ -194,13 +255,14 @@ const PatternViewer: React.FC<PatternViewerProps> = ({ era, themeOverride, compa
   }
 
   const traditionOptions = [
-    { id: 'turkish-oya', name: 'Turkish Oya', k: -0.2, alpha: 0.8, theme: 'ancient' as const, icon: '🌶️' },
-    { id: 'andean-qurpus', name: 'Andean Q\'urpus', k: -0.5, alpha: 0.6, theme: 'ancient' as const, icon: '🧶' },
-    { id: 'irish-lace', name: 'Irish Lace', k: 0.2, alpha: 0.4, theme: 'modern' as const, icon: '🍀' },
-    { id: 'mughal-aari', name: 'Mughal Aari', k: 0.1, alpha: 0.7, theme: 'ancient' as const, icon: '🕌' },
-    { id: 'sassanid', name: 'Sassanid', k: -0.7, alpha: 0.9, theme: 'ancient' as const, icon: '👑' },
-    { id: 'seifert-surface', name: 'Seifert Surface', k: -0.9, alpha: 1.0, theme: 'future' as const, icon: '🌀' },
-    { id: 'paisley-boteh', name: 'Paisley (Boteh)', k: 0.3, alpha: 0.8, theme: 'ancient' as const, icon: '🔥', beakHeight: 0.66, meaning: 'The Flame of Eternity' },
+    { id: 'turkish-oya', name: 'Turkish Oya', k: -0.2, alpha: 0.8, theme: 'ancient' as const, icon: '🌶️', material: 'Fine silk thread' },
+    { id: 'irish-rose', name: 'Irish Rose', k: 0.2, alpha: 0.4, theme: 'modern' as const, icon: '🌹', material: 'Linen lace' },
+    { id: 'andean-braid', name: 'Andean Braid', k: -0.5, alpha: 0.6, theme: 'ancient' as const, icon: '🧶', material: 'Alpaca wool' },
+    { id: 'mughal-paisley', name: 'Mughal Paisley', k: 0.3, alpha: 0.8, theme: 'ancient' as const, icon: '🔥', material: 'Gold silk zari' },
+    { id: 'roman-surface', name: 'Roman Surface', k: -0.7, alpha: 0.9, theme: 'ancient' as const, icon: '🏛️', material: 'Marble thread' },
+    { id: 'boys-surface', name: 'Boy\'s Surface', k: -0.9, alpha: 1.0, theme: 'future' as const, icon: '🌀', material: 'Quantum fiber' },
+    { id: 'japanese-sashiko', name: 'Japanese Sashiko', k: 0.1, alpha: 0.5, theme: 'modern' as const, icon: '🎌', material: 'Indigo cotton' },
+    { id: 'navajo-weaving', name: 'Navajo Weaving', k: -0.3, alpha: 0.7, theme: 'ancient' as const, icon: '🪶', material: 'Sheep wool' },
   ]
 
   const handleTraditionSelect = (tradition: {
@@ -314,6 +376,46 @@ const PatternViewer: React.FC<PatternViewerProps> = ({ era, themeOverride, compa
           </svg>
         </button>
 
+        {/* Council Lens Icons - Top Center */}
+        <div className="absolute top-3 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
+          <div className="text-xs font-medium px-2 py-1 rounded-full backdrop-blur-sm" style={{
+            backgroundColor: theme.colors.background + 'CC',
+            color: theme.colors.text,
+            border: `1px solid ${theme.colors.border}`
+          }}>
+            Consult Council:
+          </div>
+          {councilMembers.slice(0, 4).map((member) => (
+            <button
+              key={member.id}
+              onClick={() => handleExpertSelect(member.id)}
+              className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm transition-all ${activeExpertLens === member.id ? 'ring-2 ring-offset-1' : ''}`}
+              style={{
+                backgroundColor: activeExpertLens === member.id ? member.color + 'CC' : theme.colors.background + 'CC',
+                color: activeExpertLens === member.id ? theme.colors.background : member.color,
+                border: `1px solid ${activeExpertLens === member.id ? member.color : theme.colors.border}`,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+              }}
+              title={member.title}
+            >
+              <span className="text-sm">{member.icon}</span>
+            </button>
+          ))}
+          <button
+            onClick={() => setActiveExpertLens(null)}
+            className="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm"
+            style={{
+              backgroundColor: theme.colors.background + 'CC',
+              color: theme.colors.textSecondary,
+              border: `1px solid ${theme.colors.border}`,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+            }}
+            title="Clear Lens"
+          >
+            <span className="text-sm">✕</span>
+          </button>
+        </div>
+
         {/* Info Icon for Hidden Drawer (Top-Right) */}
         <button
           onClick={() => setShowPatternDetails(true)}
@@ -332,7 +434,7 @@ const PatternViewer: React.FC<PatternViewerProps> = ({ era, themeOverride, compa
       </div>
 
       {/* Bottom 40%: Thumb-Zone Controls */}
-      <div className="fixed bottom-0 left-0 right-0" style={{ 
+      <div className="fixed bottom-0 left-0 right-0" style={{
         height: '40vh',
         backgroundColor: theme.colors.card,
         borderTop: `1px solid ${theme.colors.border}`,
@@ -340,25 +442,46 @@ const PatternViewer: React.FC<PatternViewerProps> = ({ era, themeOverride, compa
         display: 'flex',
         flexDirection: 'column'
       }}>
-        {/* Tradition Picker - Bottom-left horizontal scroll */}
-        <div className="mb-4 flex-1">
-          <div className="flex overflow-x-auto pb-2 space-x-3 scrollbar-hide" style={{ minHeight: '80px' }}>
-            {traditionOptions.map((tradition) => (
-              <button
-                key={tradition.id}
-                onClick={() => handleTraditionSelect(tradition)}
-                className="flex-shrink-0 w-20 p-3 rounded-lg border-2 transition-all active:scale-95"
-                style={{
-                  backgroundColor: theme.colors.background,
-                  borderColor: tradition.id === 'paisley-boteh' ? '#F59E0B' : theme.colors.accent,
-                }}
-              >
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl mb-1">{tradition.icon}</span>
-                  <span className="text-xs" style={{ color: theme.colors.text }}>{tradition.name}</span>
-                </div>
-              </button>
-            ))}
+        {/* "Select Tradition" Bar with Frosted Glass Effect */}
+        <div className="mb-4">
+          <div className="text-xs font-medium mb-2 px-1" style={{ color: theme.colors.textSecondary }}>
+            SELECT TRADITION
+          </div>
+          <div className="relative">
+            {/* Frosted Glass Background */}
+            <div className="absolute inset-0 backdrop-blur-md rounded-xl" style={{
+              backgroundColor: `${theme.colors.background}CC`,
+              border: `1px solid ${theme.colors.border}80`,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+            }}></div>
+            
+            {/* Tradition Picker - Horizontal Scroll */}
+            <div className="relative flex overflow-x-auto pb-3 pt-3 px-3 space-x-3 scrollbar-hide z-10" style={{ minHeight: '90px' }}>
+              {traditionOptions.map((tradition) => (
+                <button
+                  key={tradition.id}
+                  onClick={() => handleTraditionSelect(tradition)}
+                  className="flex-shrink-0 w-24 p-3 rounded-xl border-2 transition-all active:scale-95 hover:scale-105"
+                  style={{
+                    backgroundColor: selectedTradition === tradition.name
+                      ? `${theme.colors.primary}20`
+                      : `${theme.colors.background}CC`,
+                    borderColor: selectedTradition === tradition.name
+                      ? theme.colors.primary
+                      : `${theme.colors.border}80`,
+                    backdropFilter: 'blur(10px)',
+                  }}
+                >
+                  <div className="flex flex-col items-center">
+                    <span className="text-3xl mb-2">{tradition.icon}</span>
+                    <span className="text-xs font-medium" style={{ color: theme.colors.text }}>{tradition.name}</span>
+                    <span className="text-xs mt-1" style={{ color: theme.colors.textSecondary }}>
+                      K: {tradition.k.toFixed(1)}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

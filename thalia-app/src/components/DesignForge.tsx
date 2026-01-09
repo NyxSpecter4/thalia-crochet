@@ -42,6 +42,23 @@ const DesignForge: React.FC<DesignForgeProps> = ({
 
   const stylePreset = getStylePreset(era);
 
+  // Get material for the selected tradition
+  const getMaterialForTradition = (traditionName: string) => {
+    const traditionMaterials: Record<string, string> = {
+      'Turkish Oya': 'fine silk thread',
+      'Irish Rose': 'linen lace',
+      'Andean Braid': 'alpaca wool',
+      'Mughal Paisley': 'gold silk zari',
+      'Roman Surface': 'marble thread',
+      'Boy\'s Surface': 'quantum fiber',
+      'Japanese Sashiko': 'indigo cotton',
+      'Navajo Weaving': 'sheep wool',
+    };
+    return traditionMaterials[traditionName] || 'fine silk thread';
+  };
+
+  const material = getMaterialForTradition(motif);
+
   // Fetch both image and critiques when forge opens
   useEffect(() => {
     if (!isOpen) return;
@@ -65,7 +82,7 @@ const DesignForge: React.FC<DesignForgeProps> = ({
             K: curvature,
             style: 'photorealistic_macro',
             resolution: '1024x1024',
-            prompt: 'Photorealistic macro photography of a physical ' + motif + ' artifact, single thread of fine silk, visible intricate crochet stitches, directional studio lighting, 8k.'
+            prompt: `Museum-quality macro photo of a hand-crocheted ${motif}, ${material} thread, 8k resolution, cinematic lighting.`
           }),
         });
 
@@ -151,7 +168,7 @@ const DesignForge: React.FC<DesignForgeProps> = ({
           K: curvature,
           style: 'photorealistic_macro',
           resolution: '1024x1024',
-          prompt: 'Photorealistic macro photography of a physical ' + motif + ' artifact, single thread of fine silk, visible intricate crochet stitches, directional studio lighting, 8k.'
+          prompt: `Museum-quality macro photo of a hand-crocheted ${motif}, ${material} thread, 8k resolution, cinematic lighting.`
         }),
       });
 
@@ -326,7 +343,7 @@ const DesignForge: React.FC<DesignForgeProps> = ({
                           Extracting DNA from {motif}...
                         </h4>
                         <p className="text-xs sm:text-sm text-center mb-3 sm:mb-4 px-2" style={{ color: theme.colors.textSecondary }}>
-                          "Photorealistic macro photography of a physical {motif} artifact, single thread of fine silk, visible intricate crochet stitches, directional studio lighting, 8k."
+                          "Museum-quality macro photo of a hand-crocheted {motif}, {material} thread, 8k resolution, cinematic lighting."
                         </p>
                         
                         {/* Progress Bar */}
@@ -415,7 +432,7 @@ const DesignForge: React.FC<DesignForgeProps> = ({
                       DALL-E 3 Prompt
                     </h4>
                     <p className="text-xs sm:text-sm" style={{ color: theme.colors.textSecondary }}>
-                      "Photorealistic macro photography of a physical {motif} artifact, single thread of fine silk, visible intricate crochet stitches, directional studio lighting, 8k."
+                      "Museum-quality macro photo of a hand-crocheted {motif}, {material} thread, 8k resolution, cinematic lighting."
                     </p>
                   </div>
                 </div>

@@ -280,73 +280,84 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Silk UTS Physics */}
+            {/* Silk Stress Monitor (500 MPa Limit) */}
             <div className="rounded-2xl border p-6" style={{ borderColor: theme.colors.border, backgroundColor: theme.colors.card }}>
-              <h2 className="text-2xl font-serif mb-4" style={{ color: theme.colors.accent }}>Silk UTS Physics</h2>
+              <h2 className="text-2xl font-serif mb-4" style={{ color: theme.colors.accent }}>Silk Stress Monitor</h2>
               <p className="text-sm mb-4" style={{ color: theme.colors.textSecondary }}>
-                Ultimate Tensile Strength (UTS) analysis for silk fibers used in crochet patterns.
-                Silk exhibits exceptional mechanical properties with 500 MPa tensile strength.
+                Real-time tensile stress monitoring for silk fibers with 500 MPa safety limit.
+                Current pattern stress calculated based on curvature and stitch density.
               </p>
               
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-                    <div className="text-sm" style={{ color: theme.colors.textSecondary }}>Tensile Strength</div>
-                    <div className="text-2xl font-mono">500 MPa</div>
-                    <div className="text-xs mt-1" style={{ color: theme.colors.textSecondary }}>Silk UTS</div>
+              <div className="space-y-6">
+                {/* Stress Gauge */}
+                <div className="relative">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="text-sm font-medium" style={{ color: theme.colors.text }}>Current Stress Level</div>
+                    <div className="text-lg font-bold" style={{ color: curvature < -0.3 ? '#EF4444' : curvature < 0 ? '#F59E0B' : '#10B981' }}>
+                      {Math.abs(curvature * 250).toFixed(0)} MPa
+                    </div>
                   </div>
-                  <div className="p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-                    <div className="text-sm" style={{ color: theme.colors.textSecondary }}>Young's Modulus</div>
-                    <div className="text-2xl font-mono">10 GPa</div>
-                    <div className="text-xs mt-1" style={{ color: theme.colors.textSecondary }}>Stiffness</div>
+                  
+                  <div className="h-6 rounded-full overflow-hidden mb-1" style={{ backgroundColor: theme.colors.background }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(100, Math.abs(curvature * 250) / 5)}%`,
+                        backgroundColor: curvature < -0.3 ? '#EF4444' : curvature < 0 ? '#F59E0B' : '#10B981'
+                      }}
+                    ></div>
+                  </div>
+                  
+                  <div className="flex justify-between text-xs" style={{ color: theme.colors.textSecondary }}>
+                    <span>0 MPa</span>
+                    <span className="font-bold" style={{ color: '#EF4444' }}>500 MPa LIMIT</span>
+                    <span>1000 MPa</span>
+                  </div>
+                  
+                  {/* Safety Indicator */}
+                  <div className={`mt-4 p-3 rounded-lg flex items-center gap-3 ${Math.abs(curvature * 250) > 500 ? 'bg-red-100 border border-red-300' : 'bg-green-100 border border-green-300'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${Math.abs(curvature * 250) > 500 ? 'bg-red-500' : 'bg-green-500'}`}>
+                      <span className="text-white text-sm">{Math.abs(curvature * 250) > 500 ? '⚠️' : '✓'}</span>
+                    </div>
+                    <div>
+                      <div className="font-medium" style={{ color: Math.abs(curvature * 250) > 500 ? '#DC2626' : '#059669' }}>
+                        {Math.abs(curvature * 250) > 500 ? 'WARNING: Stress exceeds safe limit' : 'Within safe operating limits'}
+                      </div>
+                      <div className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                        {Math.abs(curvature * 250) > 500
+                          ? 'Reduce curvature or use reinforced yarn'
+                          : 'Silk fibers can safely handle this stress level'}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
-                <div className="p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-                  <div className="text-sm font-medium mb-2" style={{ color: theme.colors.text }}>Stress-Strain Relationship</div>
-                  <div className="h-32 relative rounded overflow-hidden mb-2" style={{ backgroundColor: theme.colors.card }}>
-                    {/* Simplified stress-strain visualization */}
-                    <div className="absolute inset-0 flex items-end">
-                      <div className="h-1/4 w-full" style={{ backgroundColor: '#3B82F6' }}></div>
-                      <div className="h-1/2 w-full" style={{ backgroundColor: '#10B981' }}></div>
-                      <div className="h-3/4 w-full" style={{ backgroundColor: '#F59E0B' }}></div>
-                      <div className="h-full w-1/4" style={{ backgroundColor: '#EF4444' }}></div>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 flex justify-between text-xs p-2" style={{ color: theme.colors.textSecondary }}>
-                      <span>Elastic</span>
-                      <span>Plastic</span>
-                      <span>Yield</span>
-                      <span>Failure</span>
-                    </div>
-                  </div>
-                  <div className="text-xs" style={{ color: theme.colors.textSecondary }}>
-                    Silk fibers exhibit linear elastic behavior up to 2% strain, followed by plastic deformation until failure at ~20% strain.
-                  </div>
-                </div>
-                
+                {/* Stress Parameters */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="text-center p-3 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-                    <div className="text-lg font-bold" style={{ color: theme.colors.accent }}>2%</div>
-                    <div className="text-xs" style={{ color: theme.colors.textSecondary }}>Yield Strain</div>
+                    <div className="text-lg font-bold" style={{ color: theme.colors.accent }}>500 MPa</div>
+                    <div className="text-xs" style={{ color: theme.colors.textSecondary }}>Silk UTS Limit</div>
                   </div>
                   <div className="text-center p-3 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-                    <div className="text-lg font-bold" style={{ color: theme.colors.accent }}>20%</div>
-                    <div className="text-xs" style={{ color: theme.colors.textSecondary }}>Failure Strain</div>
+                    <div className="text-lg font-bold" style={{ color: theme.colors.accent }}>{Math.abs(curvature * 100).toFixed(1)}%</div>
+                    <div className="text-xs" style={{ color: theme.colors.textSecondary }}>Strain Risk</div>
                   </div>
                   <div className="text-center p-3 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-                    <div className="text-lg font-bold" style={{ color: theme.colors.accent }}>1.3 g/cm³</div>
-                    <div className="text-xs" style={{ color: theme.colors.textSecondary }}>Density</div>
+                    <div className="text-lg font-bold" style={{ color: theme.colors.accent }}>{nodes.length}</div>
+                    <div className="text-xs" style={{ color: theme.colors.textSecondary }}>Stress Points</div>
                   </div>
                 </div>
                 
-                <div className="p-3 rounded-lg" style={{ backgroundColor: '#10B98120', border: '1px solid #10B98140' }}>
+                {/* Engineering Recommendations */}
+                <div className="p-3 rounded-lg" style={{ backgroundColor: '#3B82F620', border: '1px solid #3B82F640' }}>
                   <div className="flex items-start gap-2">
-                    <span className="text-lg">📊</span>
+                    <span className="text-lg">🔧</span>
                     <div>
-                      <div className="text-sm font-medium" style={{ color: '#10B981' }}>Engineering Insight</div>
+                      <div className="text-sm font-medium" style={{ color: '#3B82F6' }}>Engineering Recommendations</div>
                       <div className="text-xs" style={{ color: theme.colors.textSecondary }}>
-                        Silk's 500 MPa UTS allows crochet structures to withstand significant tension while maintaining flexibility.
-                        This enables complex hyperbolic geometries without fiber failure.
+                        {Math.abs(curvature) > 0.7
+                          ? 'Consider switching to nylon-reinforced silk blend for high-curvature patterns.'
+                          : 'Pure silk is optimal. Maintain stitch tension below 0.8 N for hyperbolic geometries.'}
                       </div>
                     </div>
                   </div>
