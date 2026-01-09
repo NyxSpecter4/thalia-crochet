@@ -2,7 +2,6 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { councilMembers, sampleInsights } from '../data/council';
-import SilkFilter from '../components/effects/SilkFilter';
 import { fetchCulturalResearch } from '../lib/supabase';
 
 interface MotifCard {
@@ -346,39 +345,8 @@ const MasterGallery: React.FC = () => {
   }, [setEra]);
 
   return (
-    <div className="min-h-screen px-4 py-8 md:px-8" style={{ backgroundColor: theme.colors.background, color: theme.colors.text }}>
-      {/* Hidden SVG filters for card backgrounds */}
-      <svg xmlns="http://www.w3.org/2000/svg" className="absolute w-0 h-0">
-        <defs>
-          <filter id="parchmentTexture" x="-20%" y="-20%" width="140%" height="140%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="4" seed="3" result="noise" />
-            <feColorMatrix in="noise" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.4 0" />
-            <feBlend in="SourceGraphic" in2="noise" mode="overlay" />
-            <feGaussianBlur stdDeviation="0.8" />
-            <feComponentTransfer>
-              <feFuncA type="linear" slope="0.8" />
-            </feComponentTransfer>
-          </filter>
-          <filter id="neonPulse" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur" />
-            <feFlood floodColor="#00f5ff" floodOpacity="0.9" result="glowColor" />
-            <feComposite in="glowColor" in2="blur" operator="in" result="glow" />
-            <feMerge>
-              <feMergeNode in="glow" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-            <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0" />
-            <feComponentTransfer>
-              <feFuncR type="linear" slope="2.0" />
-              <feFuncG type="linear" slope="2.0" />
-              <feFuncB type="linear" slope="2.0" />
-            </feComponentTransfer>
-            <feDropShadow dx="0" dy="0" stdDeviation="10" floodColor="#00f5ff" floodOpacity="0.8" />
-          </filter>
-        </defs>
-      </svg>
-      {/* High‑quality silk texture filter for ancient motifs */}
-      <SilkFilter />
+    <div className="min-h-screen px-4 py-8 md:px-8" style={{ backgroundColor: '#1a1f2e', color: '#f8fafc' }}>
+      {/* No filters - Clean design */}
 
       <style>{`
         @keyframes pulse-glow {
@@ -428,16 +396,16 @@ const MasterGallery: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif mb-4" style={{ color: theme.colors.accent }}>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif mb-4" style={{ color: '#D4AF37' }}>
             THE MASTER GALLERY
           </h1>
-          <p className="text-lg md:text-xl" style={{ color: theme.colors.textSecondary }}>
-            A Vibrant Cultural Experience • Procedural Icon Cards • Side‑by‑Side Content
+          <p className="text-lg md:text-xl" style={{ color: '#cbd5e1' }}>
+            A Professional Cultural Archive • Clear Visual Cards • High‑Contrast Content
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-4">
-            <span className="px-4 py-2 rounded-full text-sm" style={{ backgroundColor: '#C5303020', color: '#C53030' }}>Ancient: Silk Texture</span>
-            <span className="px-4 py-2 rounded-full text-sm" style={{ backgroundColor: '#10B98120', color: '#10B981' }}>Modern: Clean Geometry</span>
-            <span className="px-4 py-2 rounded-full text-sm" style={{ backgroundColor: '#06B6D420', color: '#06B6D4' }}>Future: Neon Glow</span>
+            <span className="px-4 py-2 rounded-full text-sm" style={{ backgroundColor: '#374151', color: '#D4AF37' }}>Ancient</span>
+            <span className="px-4 py-2 rounded-full text-sm" style={{ backgroundColor: '#374151', color: '#D4AF37' }}>Modern</span>
+            <span className="px-4 py-2 rounded-full text-sm" style={{ backgroundColor: '#374151', color: '#D4AF37' }}>Future</span>
           </div>
         </div>
 
@@ -451,52 +419,52 @@ const MasterGallery: React.FC = () => {
               }}
               className={`rounded-3xl border overflow-hidden transition-all duration-500 ${hoveredId === motif.id ? 'scale-[1.02] shadow-2xl' : ''}`}
               style={{
-                borderColor: theme.colors.border,
-                backgroundColor: theme.colors.card,
-                filter: motif.era === 'ancient' ? 'url(#parchmentTexture)' : motif.era === 'future' ? 'url(#neonPulse)' : 'none',
-                backdropFilter: motif.era === 'future' ? 'blur(10px)' : 'none',
+                borderColor: '#2d3748',
+                backgroundColor: '#2d3748',
+                filter: 'none',
+                backdropFilter: 'none',
               }}
               onMouseEnter={() => setHoveredId(motif.id)}
               onMouseLeave={() => setHoveredId(null)}
             >
               <div className="flex flex-col lg:flex-row">
                 {/* Panel A: The Visual */}
-                <div className="lg:w-1/3 p-8 flex flex-col items-center justify-center triptych-panel" style={{ backgroundColor: motif.color + '08' }}>
+                <div className="lg:w-1/3 p-8 flex flex-col items-center justify-center triptych-panel" style={{ backgroundColor: '#374151' }}>
                   <div className="w-64 h-64">
                     <MotifSVG motif={motif} isHovered={hoveredId === motif.id} />
                   </div>
                   <div className="mt-6 text-center">
-                    <h3 className="text-2xl font-bold" style={{ color: motif.color }}>{motif.name}</h3>
-                    <p className="text-sm mt-2" style={{ color: theme.colors.textSecondary }}>{motif.description}</p>
-                    <div className="mt-4 inline-block px-4 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: motif.color + '20', color: motif.color }}>
+                    <h3 className="text-2xl font-bold" style={{ color: '#D4AF37' }}>{motif.name}</h3>
+                    <p className="text-sm mt-2" style={{ color: '#cbd5e1' }}>{motif.description}</p>
+                    <div className="mt-4 inline-block px-4 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#4b5563', color: '#D4AF37' }}>
                       {motif.era.toUpperCase()} ERA
                     </div>
                   </div>
                 </div>
 
                 {/* Panel B: The Blueprint */}
-                <div className="lg:w-1/3 p-8 border-l triptych-panel" style={{ borderColor: theme.colors.border }}>
-                  <h4 className="text-xl font-serif mb-4" style={{ color: motif.color }}>Round‑by‑Round Blueprint</h4>
-                  <div className="font-mono text-sm bg-black/10 p-4 rounded-xl space-y-2" style={{ color: theme.colors.text }}>
+                <div className="lg:w-1/3 p-8 border-l triptych-panel" style={{ borderColor: '#4b5563' }}>
+                  <h4 className="text-xl font-serif mb-4" style={{ color: '#D4AF37' }}>Round‑by‑Round Blueprint</h4>
+                  <div className="font-mono text-sm bg-gray-800 p-4 rounded-xl space-y-2" style={{ color: '#f8fafc' }}>
                     {motif.technicalRecipe.split('. ').map((step, idx) => (
                       step.trim() && (
                         <div key={idx} className="flex items-start">
-                          <span className="text-xs mr-2 mt-1" style={{ color: motif.color }}>{idx + 1}.</span>
+                          <span className="text-xs mr-2 mt-1" style={{ color: '#D4AF37' }}>{idx + 1}.</span>
                           <span>{step.trim()}{step.trim().endsWith('.') ? '' : '.'}</span>
                         </div>
                       )
                     ))}
                   </div>
                   <div className="mt-8 grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-                      <div className="text-sm" style={{ color: theme.colors.textSecondary }}>Curvature Range</div>
-                      <div className="text-lg font-mono" style={{ color: motif.color }}>
+                    <div className="p-4 rounded-lg" style={{ backgroundColor: '#374151' }}>
+                      <div className="text-sm" style={{ color: '#cbd5e1' }}>Curvature Range</div>
+                      <div className="text-lg font-mono" style={{ color: '#D4AF37' }}>
                         {motif.era === 'ancient' ? 'K = -0.3 → 0.3' : motif.era === 'modern' ? 'K ≈ 0' : 'K = 0.5 → 0.8'}
                       </div>
                     </div>
-                    <div className="p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-                      <div className="text-sm" style={{ color: theme.colors.textSecondary }}>Primary Stitch</div>
-                      <div className="text-lg font-mono" style={{ color: motif.color }}>
+                    <div className="p-4 rounded-lg" style={{ backgroundColor: '#374151' }}>
+                      <div className="text-sm" style={{ color: '#cbd5e1' }}>Primary Stitch</div>
+                      <div className="text-lg font-mono" style={{ color: '#D4AF37' }}>
                         {motif.id === 'oya' ? 'Single Crochet' : motif.id === 'irish' ? 'Double Crochet' : motif.id === 'andean' ? 'Slip Stitch' : motif.id === 'aari' ? 'Chain' : 'Magic Ring'}
                       </div>
                     </div>
@@ -504,12 +472,12 @@ const MasterGallery: React.FC = () => {
                 </div>
 
                 {/* Panel C: The Legacy */}
-                <div className="lg:w-1/3 p-8 border-l triptych-panel" style={{ borderColor: theme.colors.border }}>
-                  <h4 className="text-xl font-serif mb-4" style={{ color: motif.color }}>Historical Legacy</h4>
-                  <p className="text-lg leading-relaxed mb-6" style={{ color: theme.colors.text }}>{motif.historicalBlurb}</p>
-                  <div className="p-4 rounded-xl" style={{ backgroundColor: motif.color + '10' }}>
-                    <h5 className="font-bold mb-2" style={{ color: motif.color }}>Cultural Significance</h5>
-                    <p className="text-sm" style={{ color: theme.colors.text }}>
+                <div className="lg:w-1/3 p-8 border-l triptych-panel" style={{ borderColor: '#4b5563' }}>
+                  <h4 className="text-xl font-serif mb-4" style={{ color: '#D4AF37' }}>Historical Legacy</h4>
+                  <p className="text-lg leading-relaxed mb-6" style={{ color: '#f8fafc' }}>{motif.historicalBlurb}</p>
+                  <div className="p-4 rounded-xl" style={{ backgroundColor: '#374151' }}>
+                    <h5 className="font-bold mb-2" style={{ color: '#D4AF37' }}>Cultural Significance</h5>
+                    <p className="text-sm" style={{ color: '#cbd5e1' }}>
                       {motif.id === 'oya' ? 'Secret botanical language between women.' :
                        motif.id === 'irish' ? 'Resilience craft from the Great Famine.' :
                        motif.id === 'andean' ? 'Tactile database of the Inca Empire.' :
@@ -521,7 +489,7 @@ const MasterGallery: React.FC = () => {
                   <div className="mt-8 flex flex-wrap gap-4">
                     <button
                       className="px-6 py-3 rounded-lg font-bold transition-colors"
-                      style={{ backgroundColor: motif.color, color: '#FFFFFF' }}
+                      style={{ backgroundColor: '#D4AF37', color: '#1a1f2e' }}
                       onClick={() => alert(`Exploring ${motif.name} in depth`)}
                     >
                       Explore This Motif
@@ -530,8 +498,8 @@ const MasterGallery: React.FC = () => {
                       className="px-6 py-3 rounded-lg font-bold transition-colors border-2"
                       style={{
                         backgroundColor: 'transparent',
-                        borderColor: motif.color,
-                        color: motif.color
+                        borderColor: '#D4AF37',
+                        color: '#D4AF37'
                       }}
                       onClick={() => handleMasteryChallenge(motif)}
                     >
@@ -541,8 +509,8 @@ const MasterGallery: React.FC = () => {
                       className="px-6 py-3 rounded-lg font-bold transition-colors border-2 border-dashed"
                       style={{
                         backgroundColor: 'transparent',
-                        borderColor: motif.color,
-                        color: motif.color,
+                        borderColor: '#D4AF37',
+                        color: '#D4AF37',
                         borderWidth: '2px',
                       }}
                       onClick={() => openCouncilOverlay(motif)}

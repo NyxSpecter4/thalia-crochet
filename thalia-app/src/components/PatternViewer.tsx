@@ -40,6 +40,10 @@ const PatternViewer: React.FC<PatternViewerProps> = ({ era, themeOverride, compa
   const [showResearchPanel, setShowResearchPanel] = useState<boolean>(false)
   const [selectedTradition, setSelectedTradition] = useState<string>('Turkish Oya')
   const [activeExpertLens, setActiveExpertLens] = useState<string | null>(null)
+  const [rotationAngle, setRotationAngle] = useState<number>(0)
+  const [isTouching, setIsTouching] = useState<boolean>(false)
+  const [touchStartX, setTouchStartX] = useState<number>(0)
+  const [touchStartY, setTouchStartY] = useState<number>(0)
   
   const contextTheme = useTheme()
   let theme: ThemeConfig
@@ -86,11 +90,16 @@ const PatternViewer: React.FC<PatternViewerProps> = ({ era, themeOverride, compa
     ctx.fillStyle = theme.colors.background
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     
+    // Apply rotation transformation for touch rotation
+    const centerX = canvas.width / 2
+    const centerY = canvas.height / 2
+    ctx.translate(centerX, centerY)
+    ctx.rotate(rotationAngle)
+    ctx.translate(-centerX, -centerY)
+    
     // Draw nodes with Fresnel effect (brighter at edges)
     const scaleX = canvas.width / 800
     const scaleY = canvas.height / 600
-    const centerX = canvas.width / 2
-    const centerY = canvas.height / 2
     
     // Apply expert lens shader overlays
     const applyExpertLens = (ctx: CanvasRenderingContext2D, node: any, scaledX: number, scaledY: number, scaledSize: number) => {
@@ -250,6 +259,45 @@ const PatternViewer: React.FC<PatternViewerProps> = ({ era, themeOverride, compa
     setSelectedNodeId(null)
   }
 
+  const handleTouchStart = (event: React.TouchEvent<HTMLCanvasElement>) => {
+    event.preventDefault()
+    if (event.touches.length === 1) {
+      setIsTouching(true)
+      setTouchStartX(event.touches[0].clientX)
+      setTouchStartY(event.touches[0].clientY)
+    }
+  }
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLCanvasElement>) => {
+    event.preventDefault()
+    if (!isTouching || event.touches.length !== 1) return
+    
+    const touchX = event.touches[0].clientX
+    const touchY = event.touches[0].clientY
+    
+    // Calculate rotation based on horizontal movement
+    const deltaX = touchX - touchStartX
+    const deltaY = touchY - touchStartY
+    
+    // Use horizontal movement for rotation, vertical movement for slight zoom
+    const newRotation = rotationAngle + deltaX * 0.01
+    setRotationAngle(newRotation)
+    
+    // Update touch start for next movement
+    setTouchStartX(touchX)
+    setTouchStartY(touchY)
+  }
+
+  const handleTouchEnd = (event: React.TouchEvent<HTMLCanvasElement>) => {
+    event.preventDefault()
+    setIsTouching(false)
+  }
+
+  const handleTouchCancel = (event: React.TouchEvent<HTMLCanvasElement>) => {
+    event.preventDefault()
+    setIsTouching(false)
+  }
+
   const handleExpertSelect = (expertId: string) => {
     setActiveExpertLens(expertId)
   }
@@ -301,20 +349,35 @@ const PatternViewer: React.FC<PatternViewerProps> = ({ era, themeOverride, compa
         backgroundColor: theme.colors.background,
         borderColor: theme.colors.border
       }}>
-        <div className="relative min-h-[200px]" ref={containerRef}>
+        <div
+          className="relative min-h-[200px]"
+          ref={containerRef}
+          style={{ overscrollBehavior: 'contain' }}
+        >
           <canvas
             ref={canvasRef}
             width={canvasDimensions.width}
             height={canvasDimensions.height}
             onClick={handleCanvasClick}
-            className="w-full h-auto rounded-xl"
-            style={{ borderColor: theme.colors.border, backgroundColor: theme.colors.background }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchCancel}
+            className="w-full h-auto rounded-xl touch-manipulation"
+            style={{
+              borderColor: theme.colors.border,
+              backgroundColor: theme.colors.background,
+              cursor: isTouching ? 'grabbing' : 'grab'
+            }}
           />
         </div>
         <div className="p-3 border-t" style={{ borderColor: theme.colors.border }}>
           <div className="flex justify-between items-center mb-1">
             <div className="flex items-center gap-2">
               <label className="text-xs" style={{ color: theme.colors.text }}>Curvature (K): {curvature.toFixed(2)}</label>
+              <span className="text-xs opacity-70" style={{ color: theme.colors.textSecondary }}>
+                Touch & drag to rotate
+              </span>
             </div>
           </div>
           <input
@@ -329,6 +392,7 @@ const PatternViewer: React.FC<PatternViewerProps> = ({ era, themeOverride, compa
             style={{
               backgroundColor: theme.colors.border,
               accentColor: theme.colors.primary,
+              touchAction: 'pan-y' // Prevent interference with touch rotation
             }}
           />
         </div>
@@ -349,88 +413,34 @@ const PatternViewer: React.FC<PatternViewerProps> = ({ era, themeOverride, compa
       <SilkFilter />
       
       {/* Top 60%: Pure Art Zone - Stitch Graph Visualization */}
-      <div className="relative" style={{ height: '60vh' }} ref={containerRef}>
+      <div
+        className="relative"
+        style={{
+          height: '60vh',
+          overscrollBehavior: 'contain', // Prevent page bouncing
+          touchAction: 'pan-y pinch-zoom' // Allow vertical scrolling but not horizontal
+        }}
+        ref={containerRef}
+      >
         <canvas
           ref={canvasRef}
           width={canvasDimensions.width}
           height={canvasDimensions.height}
           onClick={handleCanvasClick}
-          className="w-full h-full"
-          style={{ backgroundColor: theme.colors.background }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
+          className="w-full h-full touch-manipulation"
+          style={{
+            backgroundColor: theme.colors.background,
+            cursor: isTouching ? 'grabbing' : 'grab'
+          }}
         />
-        
-        {/* Camera Icon in Top-Left Corner (Thalia Sight AR) */}
-        <button
-          onClick={() => console.log('Thalia Sight AR activated')}
-          className="absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center z-10 backdrop-blur-sm"
-          style={{
-            backgroundColor: theme.colors.primary + 'CC',
-            color: theme.colors.background,
-            border: `1px solid ${theme.colors.background}`,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-          }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </button>
-
-        {/* Council Lens Icons - Top Center */}
-        <div className="absolute top-3 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
-          <div className="text-xs font-medium px-2 py-1 rounded-full backdrop-blur-sm" style={{
-            backgroundColor: theme.colors.background + 'CC',
-            color: theme.colors.text,
-            border: `1px solid ${theme.colors.border}`
-          }}>
-            Consult Council:
-          </div>
-          {councilMembers.slice(0, 4).map((member) => (
-            <button
-              key={member.id}
-              onClick={() => handleExpertSelect(member.id)}
-              className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm transition-all ${activeExpertLens === member.id ? 'ring-2 ring-offset-1' : ''}`}
-              style={{
-                backgroundColor: activeExpertLens === member.id ? member.color + 'CC' : theme.colors.background + 'CC',
-                color: activeExpertLens === member.id ? theme.colors.background : member.color,
-                border: `1px solid ${activeExpertLens === member.id ? member.color : theme.colors.border}`,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-              }}
-              title={member.title}
-            >
-              <span className="text-sm">{member.icon}</span>
-            </button>
-          ))}
-          <button
-            onClick={() => setActiveExpertLens(null)}
-            className="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm"
-            style={{
-              backgroundColor: theme.colors.background + 'CC',
-              color: theme.colors.textSecondary,
-              border: `1px solid ${theme.colors.border}`,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-            }}
-            title="Clear Lens"
-          >
-            <span className="text-sm">✕</span>
-          </button>
+        {/* Rotation hint for mobile */}
+        <div className="absolute bottom-4 left-4 text-xs opacity-70" style={{ color: theme.colors.textSecondary }}>
+          Touch & drag to rotate
         </div>
-
-        {/* Info Icon for Hidden Drawer (Top-Right) */}
-        <button
-          onClick={() => setShowPatternDetails(true)}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center z-10 backdrop-blur-sm"
-          style={{
-            backgroundColor: theme.colors.accent + 'CC',
-            color: theme.colors.background,
-            border: `1px solid ${theme.colors.background}`,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-          }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </button>
       </div>
 
       {/* Bottom 40%: Thumb-Zone Controls */}
@@ -442,154 +452,97 @@ const PatternViewer: React.FC<PatternViewerProps> = ({ era, themeOverride, compa
         display: 'flex',
         flexDirection: 'column'
       }}>
-        {/* "Select Tradition" Bar with Frosted Glass Effect */}
-        <div className="mb-4">
-          <div className="text-xs font-medium mb-2 px-1" style={{ color: theme.colors.textSecondary }}>
+        {/* "Select Tradition" - Circular Icons Horizontal Scroll */}
+        <div className="mb-6">
+          <div className="text-xs font-medium mb-3 px-1" style={{ color: theme.colors.textSecondary }}>
             SELECT TRADITION
           </div>
           <div className="relative">
-            {/* Frosted Glass Background */}
-            <div className="absolute inset-0 backdrop-blur-md rounded-xl" style={{
-              backgroundColor: `${theme.colors.background}CC`,
-              border: `1px solid ${theme.colors.border}80`,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-            }}></div>
-            
-            {/* Tradition Picker - Horizontal Scroll */}
-            <div className="relative flex overflow-x-auto pb-3 pt-3 px-3 space-x-3 scrollbar-hide z-10" style={{ minHeight: '90px' }}>
+            {/* Tradition Picker - Circular Icons */}
+            <div className="flex overflow-x-auto pb-2 pt-2 px-2 space-x-4 scrollbar-hide z-10" style={{ minHeight: '80px' }}>
               {traditionOptions.map((tradition) => (
                 <button
                   key={tradition.id}
                   onClick={() => handleTraditionSelect(tradition)}
-                  className="flex-shrink-0 w-24 p-3 rounded-xl border-2 transition-all active:scale-95 hover:scale-105"
+                  className="flex-shrink-0 flex flex-col items-center transition-all active:scale-95 hover:scale-110"
                   style={{
-                    backgroundColor: selectedTradition === tradition.name
-                      ? `${theme.colors.primary}20`
-                      : `${theme.colors.background}CC`,
-                    borderColor: selectedTradition === tradition.name
-                      ? theme.colors.primary
-                      : `${theme.colors.border}80`,
-                    backdropFilter: 'blur(10px)',
+                    width: '70px',
                   }}
                 >
-                  <div className="flex flex-col items-center">
-                    <span className="text-3xl mb-2">{tradition.icon}</span>
-                    <span className="text-xs font-medium" style={{ color: theme.colors.text }}>{tradition.name}</span>
-                    <span className="text-xs mt-1" style={{ color: theme.colors.textSecondary }}>
-                      K: {tradition.k.toFixed(1)}
-                    </span>
+                  <div
+                    className="w-14 h-14 rounded-full flex items-center justify-center border-2 transition-all mb-2"
+                    style={{
+                      backgroundColor: selectedTradition === tradition.name
+                        ? `${theme.colors.primary}20`
+                        : `${theme.colors.background}CC`,
+                      borderColor: selectedTradition === tradition.name
+                        ? theme.colors.primary
+                        : `${theme.colors.border}80`,
+                      backdropFilter: 'blur(10px)',
+                      fontSize: '24px',
+                    }}
+                  >
+                    {tradition.icon}
                   </div>
+                  <span className="text-xs font-medium truncate w-full text-center" style={{ color: theme.colors.text }}>{tradition.name}</span>
+                  <span className="text-xs mt-0.5" style={{ color: theme.colors.textSecondary }}>
+                    K: {tradition.k.toFixed(1)}
+                  </span>
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Vertical Slider on Right Edge (Thumb-Zone) */}
-        <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-          <div className="flex flex-col items-center">
-            <label className="text-xs mb-2" style={{ color: theme.colors.text }}>
-              Curvature: {curvature.toFixed(2)}
+        {/* Horizontal Slider - Wide and Easy to Touch */}
+        <div className="mt-4 mb-6 px-4">
+          <div className="flex justify-between items-center mb-2">
+            <label className="text-sm font-medium" style={{ color: theme.colors.text }}>
+              Curvature
             </label>
-            <input
-              type="range"
-              min="-1"
-              max="1"
-              step="0.01"
-              value={curvature}
-              onChange={(e) => handleCurvatureChange(parseFloat(e.target.value))}
-              disabled={isLocked}
-              className="h-48 w-2 appearance-none rounded-full slider-vertical touch-manipulation"
-              style={{
-                backgroundColor: theme.colors.border,
-                accentColor: theme.colors.primary,
-                writingMode: 'vertical-lr',
-                direction: 'rtl'
-              }}
-            />
+            <span className="text-sm font-mono" style={{ color: theme.colors.primary }}>
+              {curvature.toFixed(2)}
+            </span>
+          </div>
+          <input
+            type="range"
+            min="-1"
+            max="1"
+            step="0.01"
+            value={curvature}
+            onChange={(e) => handleCurvatureChange(parseFloat(e.target.value))}
+            disabled={isLocked}
+            className="w-full h-3 appearance-none rounded-full slider-horizontal touch-manipulation"
+            style={{
+              backgroundColor: theme.colors.border,
+              accentColor: theme.colors.primary,
+              touchAction: 'none',
+            }}
+          />
+          <div className="flex justify-between text-xs mt-1" style={{ color: theme.colors.textSecondary }}>
+            <span>Hyperbolic (-1)</span>
+            <span>Flat (0)</span>
+            <span>Spherical (+1)</span>
           </div>
         </div>
 
-        {/* Large Glowing FORGE Button - Bottom Right */}
-        <div className="absolute bottom-4 right-4">
+        {/* Professional FORGE FAB - Bottom Right */}
+        <div className="absolute bottom-6 right-6">
           <button
             onClick={() => setShowDesignForge(true)}
-            className="w-20 h-20 rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95"
+            className="w-16 h-16 rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2"
             style={{
-              background: 'radial-gradient(circle at 30% 30%, #FBBF24, #D97706)',
-              boxShadow: '0 0 40px rgba(251, 191, 36, 0.7), inset 0 0 20px rgba(255, 255, 255, 0.3)',
-              color: '#1F2937',
-              border: '2px solid #F59E0B'
+              background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+              boxShadow: '0 4px 20px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset',
+              color: '#FFFFFF',
+              border: 'none'
             }}
           >
-            <span className="text-lg font-bold">FORGE</span>
+            <span className="text-sm font-semibold tracking-wide">FORGE</span>
           </button>
         </div>
       </div>
 
-      {/* Hidden Drawer for Pattern Details */}
-      {showPatternDetails && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-end">
-          <div className="w-80 h-full" style={{ backgroundColor: theme.colors.card }}>
-            <div className="p-4 border-b" style={{ borderColor: theme.colors.border }}>
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold" style={{ color: theme.colors.text }}>
-                  Pattern Details
-                </h3>
-                <button
-                  onClick={() => setShowPatternDetails(false)}
-                  className="p-2 rounded-full hover:bg-gray-200"
-                  style={{ color: theme.colors.text }}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            <div className="p-4 space-y-4">
-              <div>
-                <h4 className="text-sm font-medium mb-2" style={{ color: theme.colors.text }}>
-                  Pattern Statistics
-                </h4>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-3 rounded" style={{ backgroundColor: theme.colors.background }}>
-                    <div className="text-xs" style={{ color: theme.colors.textSecondary }}>Rows</div>
-                    <div className="text-lg font-semibold" style={{ color: theme.colors.text }}>{pattern.rows}</div>
-                  </div>
-                  <div className="p-3 rounded" style={{ backgroundColor: theme.colors.background }}>
-                    <div className="text-xs" style={{ color: theme.colors.textSecondary }}>Stitches</div>
-                    <div className="text-lg font-semibold" style={{ color: theme.colors.text }}>{patternComplexity}</div>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium mb-2" style={{ color: theme.colors.text }}>
-                  Pattern Logic
-                </h4>
-                <div className="p-3 rounded text-sm" style={{
-                  backgroundColor: theme.colors.background,
-                  color: theme.colors.text,
-                  fontFamily: 'monospace'
-                }}>
-                  {pattern.stitches.map((count, i) => (
-                    <div key={i}>Row {i + 1}: {count} stitches</div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium mb-2" style={{ color: theme.colors.text }}>
-                  Selected Tradition
-                </h4>
-                <div className="p-3 rounded" style={{ backgroundColor: theme.colors.background }}>
-                  <div className="text-sm" style={{ color: theme.colors.text }}>{selectedTradition}</div>
-                  <div className="text-xs" style={{ color: theme.colors.textSecondary }}>
-                    Curvature: {curvature.toFixed(2)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Design Forge Modal */}
       <DesignForge

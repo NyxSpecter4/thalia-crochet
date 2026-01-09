@@ -39,12 +39,24 @@ const PatternScript: React.FC<PatternScriptProps> = ({
   };
   
   const instructions = formatInstructions();
+
+  // Transform instruction text with JIS symbols and color coding
+  const transformInstruction = (text: string) => {
+    let transformed = text
+      .replace(/\bsc\b/g, '●')
+      .replace(/\bdc\b/g, '▲')
+      .replace(/\bhdc\b/g, '△')
+      .replace(/\binc\b/g, '<span style="color: #D4AF37">inc</span>')
+      .replace(/\bdec\b/g, '<span style="color: #EF4444">dec</span>')
+      .replace(/\bdc2tog\b/g, '<span style="color: #EF4444">dc2tog</span>');
+    return transformed;
+  };
   
-  // Get abbreviation examples
+  // Get abbreviation examples with JIS symbols
   const commonAbbreviations = {
-    'sc': 'single crochet',
-    'dc': 'double crochet',
-    'hdc': 'half double crochet',
+    '●': 'single crochet',
+    '▲': 'double crochet',
+    '△': 'half double crochet',
     'ch': 'chain',
     'sl st': 'slip stitch',
     'inc': 'increase (2 stitches in same stitch)',
@@ -138,9 +150,11 @@ const PatternScript: React.FC<PatternScriptProps> = ({
                   {item.round}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-mono" style={{ color: theme.colors.text }}>
-                    {item.instruction}
-                  </p>
+                  <p
+                    className="text-sm font-mono"
+                    style={{ color: theme.colors.text }}
+                    dangerouslySetInnerHTML={{ __html: transformInstruction(item.instruction) }}
+                  />
                   <div className="flex items-center mt-1">
                     <div className="text-xs px-2 py-1 rounded mr-2" style={{ 
                       backgroundColor: theme.colors.card,

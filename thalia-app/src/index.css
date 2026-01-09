@@ -161,4 +161,17 @@
   .era-transition {
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
+
+  /* Mobile touch improvements */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  .overscroll-contain {
+    overscroll-behavior: contain;
+  }
+
+  .no-bounce {
+    overscroll-behavior-y: none;
+  }
 }
